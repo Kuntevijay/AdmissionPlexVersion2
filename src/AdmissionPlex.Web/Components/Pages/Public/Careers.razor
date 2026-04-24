@@ -2,64 +2,183 @@
 @layout PublicLayout
 @inject HttpClient Http
 
-<PageTitle>Career Library - AdmissionPlex</PageTitle>
+<PageTitle>Career Explorer - AdmissionPlex</PageTitle>
 
-<section style="padding:120px 60px 80px;">
+<!-- Stream Cards Section -->
+<section style="padding:120px 60px 40px; background:var(--ap-bg);">
     <div style="max-width:1200px; margin:0 auto;">
         <div class="section-header">
-            <div class="section-tag" style="color:var(--ap-primary);">Explore</div>
-            <h2 class="section-title">Career Library</h2>
-            <p class="section-subtitle">Discover 200+ career paths across Science, Commerce & Arts</p>
+            <div class="section-tag" style="color:var(--ap-primary);">Career Streams</div>
+            <h2 class="section-title">Explore Career <span style="color:var(--ap-primary);">Paths</span></h2>
+            <p class="section-subtitle">Discover opportunities across different streams</p>
         </div>
 
+        <div class="grid-3" style="gap:24px; margin-bottom:48px;">
+            <div class="card" style="text-align:center; padding:40px 32px; border:2px solid rgba(74,144,217,0.2); cursor:pointer;" onclick="document.getElementById('science').scrollIntoView({behavior:'smooth'})">
+                <div style="width:56px; height:56px; border-radius:12px; background:rgba(74,144,217,0.1); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px;">🔬</div>
+                <h3 style="font-size:20px; font-weight:700; margin-bottom:12px;">Science</h3>
+                <p style="font-size:14px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:24px;">Engineering, Medicine, Research, IT, and more technical career paths.</p>
+                <span style="display:inline-block; padding:10px 24px; border:1px solid var(--ap-sky); border-radius:8px; color:var(--ap-sky); font-size:13px; font-weight:600;">Explore Science Careers</span>
+            </div>
+
+            <div class="card" style="text-align:center; padding:40px 32px; border:2px solid rgba(34,197,94,0.2); cursor:pointer;" onclick="document.getElementById('commerce').scrollIntoView({behavior:'smooth'})">
+                <div style="width:56px; height:56px; border-radius:12px; background:rgba(34,197,94,0.1); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px;">📈</div>
+                <h3 style="font-size:20px; font-weight:700; margin-bottom:12px;">Commerce</h3>
+                <p style="font-size:14px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:24px;">Business, Finance, Banking, Accounting, and management career paths.</p>
+                <span style="display:inline-block; padding:10px 24px; border:1px solid var(--ap-green); border-radius:8px; color:var(--ap-green); font-size:13px; font-weight:600;">Explore Commerce Careers</span>
+            </div>
+
+            <div class="card" style="text-align:center; padding:40px 32px; border:2px solid rgba(212,168,83,0.2); cursor:pointer;" onclick="document.getElementById('arts').scrollIntoView({behavior:'smooth'})">
+                <div style="width:56px; height:56px; border-radius:12px; background:rgba(212,168,83,0.1); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px;">🎨</div>
+                <h3 style="font-size:20px; font-weight:700; margin-bottom:12px;">Arts</h3>
+                <p style="font-size:14px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:24px;">Law, Journalism, Design, Civil Services, and creative career paths.</p>
+                <span style="display:inline-block; padding:10px 24px; border:1px solid var(--ap-gold); border-radius:8px; color:var(--ap-gold); font-size:13px; font-weight:600;">Explore Arts Careers</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filter Bar -->
+        <div class="card" style="padding:16px 24px; margin-bottom:24px;">
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div class="form-group" style="margin:0; flex:0 0 auto;">
+                    <select class="form-select" style="width:auto;" @bind="selectedStream">
+                        <option value="">All Streams</option>
+                        <option value="Science">Science</option>
+                        <option value="Commerce">Commerce</option>
+                        <option value="Arts">Arts</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0; flex:1;">
+                    <input class="form-input" type="text" placeholder="Search by career name..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+                <span style="font-size:13px; color:var(--ap-text-muted);">@FilteredCareers().Count careers found</span>
+            </div>
+        </div>
+<section style="padding:0 60px 80px;">
+    <div style="max-width:1200px; margin:0 auto;">
         @if (careers == null)
         {
             <div class="spinner"></div>
         }
-        else
+        else if (FilteredCareers().Any())
         {
-            <div class="grid-3">
-                @foreach (var career in careers)
-                {
-                    <a href="/careers/@career.Slug" style="text-decoration:none; color:inherit;">
-                        <div class="card" style="cursor:pointer; transition:transform 0.2s;">
-                            <div style="width:40px; height:4px; border-radius:2px; background:var(--ap-primary); margin-bottom:16px;"></div>
-                            <div style="font-weight:700; font-size:16px; margin-bottom:8px;">@career.Title</div>
-                            <div style="display:flex; gap:8px; margin-bottom:12px;">
-                                <span class="badge badge-primary">@career.StreamName</span>
-                                @if (!string.IsNullOrEmpty(career.GrowthOutlook))
+            @foreach (var streamGroup in FilteredCareers().GroupBy(c => c.StreamName))
+            {
+                <div id="@streamGroup.Key.ToLower()" style="margin-bottom:48px; scroll-margin-top:100px;">
+                    <h3 style="font-family:var(--ap-font-display); font-size:28px; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--ap-border);">
+                        @streamGroup.Key Careers
+                    </h3>
+                    <div class="grid-3" style="gap:20px;">
+                        @foreach (var career in streamGroup)
+                        {
+                            <div class="card" style="border-left:4px solid @GetStreamColor(career.StreamName); transition:transform 0.2s;">
+                                <div style="font-weight:700; font-size:16px; margin-bottom:8px;">@career.Title</div>
+                                <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:12px;">@career.Summary</p>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                                    <span class="badge badge-primary">@career.StreamName</span>
+                                    @if (!string.IsNullOrEmpty(career.GrowthOutlook))
+                                    {
+                                        <span class="badge @GetGrowthBadge(career.GrowthOutlook)">@FormatGrowth(career.GrowthOutlook)</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(career.EducationPath))
                                 {
-                                    <span class="badge badge-green">@career.GrowthOutlook</span>
+                                    <div style="font-size:12px; color:var(--ap-text-muted); border-top:1px solid var(--ap-border); padding-top:8px; margin-bottom:4px;">
+                                        📚 @career.EducationPath
+                                    </div>
+                                }
+                                @if (career.AvgSalaryMin > 0)
+                                {
+                                    <div style="font-size:12px; color:var(--ap-primary); font-weight:600;">
+                                        💰 @FormatSalary(career.AvgSalaryMin) - @FormatSalary(career.AvgSalaryMax) per year
+                                    </div>
                                 }
                             </div>
-                            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6;">@career.Summary</p>
-                        </div>
-                    </a>
-                }
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="card" style="padding:60px; text-align:center;">
+                <div style="font-size:48px; margin-bottom:16px;">🎯</div>
+                <h3 style="font-size:18px; margin-bottom:8px;">No careers loaded yet</h3>
+                <p style="color:var(--ap-text-muted);">Career data will appear after admin seeds the database.</p>
             </div>
         }
     </div>
 </section>
 
 @code {
-    private List<CareerListItem>? careers;
+    private List<CareerItem>? careers;
+    private string selectedStream = "";
+    private string searchQuery = "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<CareerListItem>>>("api/careers");
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<CareerItem>>>("api/careers");
             careers = response?.Data ?? new();
         }
         catch { careers = new(); }
     }
 
-    private class CareerListItem
+    private List<CareerItem> FilteredCareers()
+    {
+        if (careers == null) return new();
+        var filtered = careers.AsEnumerable();
+        if (!string.IsNullOrEmpty(selectedStream))
+            filtered = filtered.Where(c => c.StreamName == selectedStream);
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+            filtered = filtered.Where(c =>
+                c.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                (c.Summary?.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
+        return filtered.ToList();
+    }
+
+    private string GetStreamColor(string stream) => stream switch
+    {
+        "Science" => "var(--ap-sky)",
+        "Commerce" => "var(--ap-green)",
+        "Arts" => "var(--ap-gold)",
+        _ => "var(--ap-primary)"
+    };
+
+    private string GetGrowthBadge(string growth) => growth?.ToLower() switch
+    {
+        "veryhigh" => "badge-green",
+        "high" => "badge-green",
+        "medium" => "badge-gold",
+        _ => "badge-primary"
+    };
+
+    private string FormatGrowth(string growth) => growth switch
+    {
+        "VeryHigh" => "Very High Growth",
+        "High" => "High Growth",
+        "Medium" => "Medium Growth",
+        "Low" => "Low Growth",
+        _ => growth
+    };
+
+    private string FormatSalary(decimal? salary)
+    {
+        if (!salary.HasValue || salary == 0) return "";
+        return salary.Value >= 100000 ? $"₹{salary.Value / 100000:N1}L" : $"₹{salary.Value:N0}";
+    }
+
+    private class CareerItem
     {
         public string Title { get; set; } = "";
         public string Slug { get; set; } = "";
         public string StreamName { get; set; } = "";
         public string Summary { get; set; } = "";
         public string? GrowthOutlook { get; set; }
+        public string? EducationPath { get; set; }
+        public decimal? AvgSalaryMin { get; set; }
+        public decimal? AvgSalaryMax { get; set; }
     }
 }

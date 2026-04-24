@@ -1,6 +1,6 @@
 @page "/student/chat"
 @layout StudentLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Career Chat - AdmissionPlex</PageTitle>
 
@@ -88,7 +88,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/chat/sessions");
+            var response = await Api.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/chat/sessions");
             sessions = response?.Data ?? new();
         }
         catch { sessions = new(); }
@@ -111,7 +111,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<ChatMsg>>>($"api/chat/sessions/{sessionId}/messages");
+            var response = await Api.GetFromJsonAsync<ApiResponse<List<ChatMsg>>>($"api/chat/sessions/{sessionId}/messages");
             messages = response?.Data ?? new();
         }
         catch { messages = new(); }
@@ -140,7 +140,7 @@
             if (currentSessionId == 0)
             {
                 // Start new session
-                var response = await Http.PostAsJsonAsync("api/chat/sessions", new { InitialMessage = userText });
+                var response = await Api.PostAsJsonAsync("api/chat/sessions", new { InitialMessage = userText });
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<ApiResponse<NewSessionResult>>();
@@ -156,7 +156,7 @@
             else
             {
                 // Send to existing session
-                var response = await Http.PostAsJsonAsync($"api/chat/sessions/{currentSessionId}/messages", new { Message = userText });
+                var response = await Api.PostAsJsonAsync($"api/chat/sessions/{currentSessionId}/messages", new { Message = userText });
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<ApiResponse<ChatMsg>>();

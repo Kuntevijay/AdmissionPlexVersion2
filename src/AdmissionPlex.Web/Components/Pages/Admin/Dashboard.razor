@@ -1,6 +1,6 @@
 @page "/admin"
 @layout AdminLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Admin Dashboard - AdmissionPlex</PageTitle>
 
@@ -60,7 +60,7 @@ else
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<DashboardData>>("api/dashboard/admin");
+            var response = await Api.GetFromJsonAsync<ApiResponse<DashboardData>>("api/dashboard/admin");
             data = response?.Data;
         }
         catch { data = new DashboardData(); }

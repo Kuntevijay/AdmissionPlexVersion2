@@ -1,6 +1,6 @@
 @page "/admin/careers"
 @layout AdminLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Career Library - Admin</PageTitle>
 
@@ -40,7 +40,7 @@ else
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<CareerItem>>>("api/careers");
+            var response = await Api.GetFromJsonAsync<ApiResponse<List<CareerItem>>>("api/careers");
             careers = response?.Data ?? new();
         }
         catch { careers = new(); }

@@ -4,6 +4,7 @@ public class TestAttemptDto
 {
     public long Id { get; set; }
     public Guid Uuid { get; set; }
+    public long TestId { get; set; }
     public string TestTitle { get; set; } = string.Empty;
     public string TestType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

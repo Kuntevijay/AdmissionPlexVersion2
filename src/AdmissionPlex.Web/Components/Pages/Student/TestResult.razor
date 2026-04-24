@@ -1,6 +1,6 @@
 @page "/student/results/{AttemptId:long}"
 @layout StudentLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Test Results - AdmissionPlex</PageTitle>
 
@@ -107,7 +107,7 @@ else
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<PsychometricReportDto>>($"api/tests/attempts/{AttemptId}/report");
+            var response = await Api.GetFromJsonAsync<ApiResponse<PsychometricReportDto>>($"api/tests/attempts/{AttemptId}/report");
             report = response?.Data;
         }
         catch { }

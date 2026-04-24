@@ -9,6 +9,7 @@ public class TestAttempt : BaseEntity
     public Guid Uuid { get; set; } = Guid.NewGuid();
     public long StudentId { get; set; }
     public long TestId { get; set; }
+    public long? AssessmentSessionId { get; set; }
     public AttemptStatus Status { get; set; } = AttemptStatus.Started;
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
@@ -22,6 +23,7 @@ public class TestAttempt : BaseEntity
     // Navigation
     public StudentProfile Student { get; set; } = null!;
     public Test Test { get; set; } = null!;
+    public AssessmentSession? AssessmentSession { get; set; }
     public ICollection<TestResponse> Responses { get; set; } = new List<TestResponse>();
     public ICollection<InterestScore> InterestScores { get; set; } = new List<InterestScore>();
     public ICollection<AptitudeScore> AptitudeScores { get; set; } = new List<AptitudeScore>();

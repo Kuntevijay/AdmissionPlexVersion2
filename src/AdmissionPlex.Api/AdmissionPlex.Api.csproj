@@ -21,4 +21,8 @@
     <PackageReference Include="Serilog.AspNetCore" Version="9.*" />
     <PackageReference Include="QuestPDF" Version="2024.*" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Update="Data\Seed\sample_questions.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Data\Migrations\init.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

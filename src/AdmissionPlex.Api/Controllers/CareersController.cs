@@ -24,6 +24,8 @@ public class CareersController : ControllerBase
             c.Id, c.Slug, c.Title, c.Summary,
             StreamName = c.Stream?.Name ?? "",
             GrowthOutlook = c.GrowthOutlook.ToString(),
+            c.EducationPath, c.EducationCostRange,
+            SalaryMin = c.AvgSalaryMin, SalaryMax = c.AvgSalaryMax,
             c.AvgSalaryMin, c.AvgSalaryMax, c.ImageUrl
         });
         return Ok(ApiResponse<object>.Ok(dtos));

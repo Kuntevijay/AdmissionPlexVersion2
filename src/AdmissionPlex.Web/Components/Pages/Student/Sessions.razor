@@ -1,6 +1,6 @@
 @page "/student/sessions"
 @layout StudentLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Counsellor Sessions - AdmissionPlex</PageTitle>
 
@@ -140,7 +140,7 @@ else
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<CounsellorItem>>>("api/counsellors");
+            var response = await Api.GetFromJsonAsync<ApiResponse<List<CounsellorItem>>>("api/counsellors");
             counsellors = response?.Data ?? new();
         }
         catch { counsellors = new(); }
@@ -150,7 +150,7 @@ else
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/counsellor-sessions/my-sessions");
+            var response = await Api.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/counsellor-sessions/my-sessions");
             sessions = response?.Data ?? new();
         }
         catch { sessions = new(); }
@@ -167,7 +167,7 @@ else
         if (bookRequest.CounsellorId == 0) return;
         try
         {
-            await Http.PostAsJsonAsync("api/counsellor-sessions", bookRequest);
+            await Api.PostAsJsonAsync("api/counsellor-sessions", bookRequest);
             showBooking = false;
             await LoadSessions();
         }

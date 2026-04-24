@@ -60,7 +60,7 @@ public class TestsController : ControllerBase
         if (test == null || !test.IsActive)
             return NotFound(ApiResponse<object>.Fail("Test not found or inactive."));
 
-        var studentId = GetStudentId();
+        var studentId = await GetStudentIdAsync();
         if (studentId == 0)
             return BadRequest(ApiResponse<object>.Fail("Student profile not found."));
 
@@ -318,7 +318,7 @@ public class TestsController : ControllerBase
     [HttpGet("my-attempts")]
     public async Task<IActionResult> GetMyAttempts()
     {
-        var studentId = GetStudentId();
+        var studentId = await GetStudentIdAsync();
         var attempts = await _uow.TestAttempts.GetByStudentIdAsync(studentId);
         var dtos = attempts.Select(MapAttemptToDto).ToList();
         return Ok(ApiResponse<List<TestAttemptDto>>.Ok(dtos));
@@ -326,20 +326,25 @@ public class TestsController : ControllerBase
 
     // === Helpers ===
 
-    private long GetStudentId()
+    private async Task<long> GetStudentIdAsync()
     {
         var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-        var student = _uow.Students.FindAsync(s => s.UserId == userId).Result.FirstOrDefault();
+        var students = await _uow.Students.FindAsync(s => s.UserId == userId);
+        var student = students.FirstOrDefault();
         return student?.Id ?? 0;
     }
 
     private static TestDto MapToDto(Test t) => new()
     {
         Id = t.Id,
+        Code = t.Code,
         Title = t.Title,
         Slug = t.Slug,
         TestType = t.TestType.ToString(),
+        Category = t.Category,
         Description = t.Description,
+        Icon = t.Icon,
+        DisplayOrder = t.DisplayOrder,
         DurationMinutes = t.DurationMinutes,
         TotalQuestions = t.TotalQuestions,
         Price = t.Price,
@@ -363,6 +368,7 @@ public class TestsController : ControllerBase
     {
         Id = a.Id,
         Uuid = a.Uuid,
+        TestId = a.TestId,
         TestTitle = a.Test?.Title ?? "",
         TestType = a.Test?.TestType.ToString() ?? "",
         Status = a.Status.ToString(),

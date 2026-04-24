@@ -191,22 +191,20 @@ public class TestScoringService : ITestScoringService
     {
         var scoresList = aptitudeScores.ToList();
         if (!scoresList.Any())
-            return Task.FromResult((0, nameof(Core.Enums.IqCategory.BelowAverage)));
+            return Task.FromResult((60, nameof(Core.Enums.IqCategory.BelowAverage)));
 
-        // Weighted average of all aptitude percentiles → map to IQ scale
-        // Simple mapping: average percentile * 1.4 + 30 (gives range ~30-170)
+        // Map percent-correct (0..100) onto IQ band 60..140 (matching reference project)
         var avgPercentile = scoresList.Average(s => (double)s.PercentileScore);
-        var iqScore = (int)Math.Round(avgPercentile * 1.4 + 30);
-
-        // Clamp to reasonable range
-        iqScore = Math.Clamp(iqScore, 50, 170);
+        var iqScore = (int)Math.Round(60 + avgPercentile * 0.8);
+        iqScore = Math.Clamp(iqScore, 60, 140);
 
         var category = iqScore switch
         {
-            < AppConstants.DefaultIqBelowAverage => nameof(Core.Enums.IqCategory.BelowAverage),
-            < AppConstants.DefaultIqAverage => nameof(Core.Enums.IqCategory.Average),
-            < AppConstants.DefaultIqAboveAverage => nameof(Core.Enums.IqCategory.AboveAverage),
-            _ => nameof(Core.Enums.IqCategory.Superior)
+            >= 130 => nameof(Core.Enums.IqCategory.Superior),
+            >= 120 => nameof(Core.Enums.IqCategory.Superior),
+            >= 110 => nameof(Core.Enums.IqCategory.AboveAverage),
+            >= 90 => nameof(Core.Enums.IqCategory.Average),
+            _ => nameof(Core.Enums.IqCategory.BelowAverage)
         };
 
         return Task.FromResult((iqScore, category));
@@ -260,11 +258,9 @@ public class TestScoringService : ITestScoringService
                 ? Math.Round(weightedScore / totalWeight, 2)
                 : 0;
 
-            var isRecommended = meetsMinimums && suitabilityPct >= career.SuitabilityCutoffPct;
-
-            // "Can be considered" — close to cutoff (within 15%) but fails some minimums
-            var isCanBeConsidered = !isRecommended
-                && suitabilityPct >= (career.SuitabilityCutoffPct - 15);
+            // Thresholds matching reference project: >=80 Recommended, >=65 Considered
+            var isRecommended = suitabilityPct >= 80;
+            var isCanBeConsidered = !isRecommended && suitabilityPct >= 65;
 
             suitabilityScores.Add(new CareerSuitabilityScore
             {

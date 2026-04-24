@@ -610,3 +610,28 @@ ON CONFLICT ("NormalizedName") DO NOTHING;
 -- Done! All 30+ tables created with seed data.
 -- Admin user will be created on first app startup via DbSeeder.
 -- ============================================================
+
+-- Assessment Sessions (groups 9 sub-test attempts)
+CREATE TABLE IF NOT EXISTS assessment_sessions (
+    "Id" BIGSERIAL PRIMARY KEY,
+    "Uuid" UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    "StudentId" BIGINT NOT NULL REFERENCES student_profiles("Id"),
+    "AllCompleted" BOOLEAN DEFAULT FALSE,
+    "CompletedCount" INTEGER DEFAULT 0,
+    "TotalCount" INTEGER DEFAULT 9,
+    "SavedReportId" UUID,
+    "OverallIqScore" INTEGER,
+    "IqCategory" VARCHAR(20),
+    "CreatedAt" TIMESTAMPTZ DEFAULT NOW(),
+    "CompletedAt" TIMESTAMPTZ
+);
+
+-- Add Code, Category, Icon, DisplayOrder columns to tests table if missing
+DO $$ BEGIN
+    ALTER TABLE tests ADD COLUMN IF NOT EXISTS "Code" VARCHAR(50);
+    ALTER TABLE tests ADD COLUMN IF NOT EXISTS "Category" VARCHAR(20);
+    ALTER TABLE tests ADD COLUMN IF NOT EXISTS "Icon" VARCHAR(10);
+    ALTER TABLE tests ADD COLUMN IF NOT EXISTS "DisplayOrder" INTEGER DEFAULT 0;
+    ALTER TABLE test_attempts ADD COLUMN IF NOT EXISTS "AssessmentSessionId" BIGINT REFERENCES assessment_sessions("Id");
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;

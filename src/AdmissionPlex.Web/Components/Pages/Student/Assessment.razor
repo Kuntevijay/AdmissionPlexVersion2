@@ -1,0 +1,209 @@
+@page "/student/assessment"
+@layout StudentLayout
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Psychometric Assessment - AdmissionPlex</PageTitle>
+
+<div class="topbar"><h2>Psychometric Assessment</h2></div>
+
+@if (loading)
+{
+    <div class="spinner"></div>
+}
+else if (overview == null)
+{
+    <div class="card" style="padding:60px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:16px;">🧠</div>
+        <h3>Could not load assessment</h3>
+        <p style="color:var(--ap-text-muted);">Please try again or contact support.</p>
+    </div>
+}
+else
+{
+    <div style="display:grid; grid-template-columns:240px 1fr; gap:24px;">
+        <!-- Sidebar: Progress -->
+        <div>
+            <div class="card" style="position:sticky; top:100px;">
+                <div style="text-align:center; margin-bottom:16px;">
+                    <div class="avatar" style="width:56px; height:56px; font-size:20px; margin:0 auto 8px;">👤</div>
+                    <div style="font-weight:700; font-size:15px;">Student</div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                        <span style="color:var(--ap-text-muted);">Overall progress</span>
+                        <strong>@overview.CompletedCount / @overview.TotalCount</strong>
+                    </div>
+                    <div style="height:8px; background:var(--ap-border); border-radius:4px; overflow:hidden;">
+                        <div style="height:100%; width:@(overview.TotalCount > 0 ? overview.CompletedCount * 100 / overview.TotalCount : 0)%; background:var(--ap-primary); border-radius:4px; transition:width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <p style="font-size:12px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:16px;">
+                    Complete all 9 sub-tests to generate your full career report with interest profile, aptitude analysis, IQ benchmark, and career recommendations.
+                </p>
+
+                @if (overview.AllCompleted)
+                {
+                    <a href="/student/assessment/report" class="btn btn-primary" style="width:100%; justify-content:center;">View Report →</a>
+                }
+
+                <button class="btn btn-outline btn-sm" style="width:100%; justify-content:center; margin-top:8px;"
+                        @onclick="ResetAssessment" disabled="@resetting">
+                    @(resetting ? "Resetting..." : "↻ Reset Assessment")
+                </button>
+            </div>
+        </div>
+
+        <!-- Main: 9 Sub-test Cards -->
+        <div>
+            <h3 style="font-size:20px; font-weight:700; margin-bottom:16px;">Assessment modules</h3>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+                @foreach (var test in overview.Tests)
+                {
+                    var borderColor = test.Status switch
+                    {
+                        "Completed" => "var(--ap-green)",
+                        "Available" or "InProgress" => "var(--ap-primary)",
+                        _ => "var(--ap-border)"
+                    };
+                    var opacity = test.Status == "Locked" ? "0.5" : "1";
+
+                    <div class="card" style="border-top:3px solid @borderColor; opacity:@opacity; transition:all 0.2s;">
+                        <!-- Header -->
+                        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+                            <div style="font-size:24px;">@test.Icon</div>
+                            <span class="badge @GetStatusBadge(test.Status)" style="font-size:11px;">
+                                @GetStatusLabel(test.Status)
+                            </span>
+                        </div>
+
+                        <!-- Content -->
+                        <h4 style="font-size:14px; font-weight:700; margin-bottom:4px;">@test.Title</h4>
+                        <p style="font-size:12px; color:var(--ap-text-muted); line-height:1.5; margin-bottom:12px;">@test.Description</p>
+
+                        <div style="display:flex; gap:12px; font-size:11px; color:var(--ap-text-muted); margin-bottom:12px;">
+                            <span>@test.TotalQuestions questions</span>
+                            <span>@test.DurationMinutes min</span>
+                        </div>
+
+                        @if (test.Status == "Completed" && test.AnsweredCount.HasValue)
+                        {
+                            <div style="font-size:12px; color:var(--ap-green); margin-bottom:8px;">
+                                Answered: @test.AnsweredCount / @test.TotalQuestions
+                            </div>
+                        }
+
+                        <!-- Action Button -->
+                        @if (test.Status == "Available")
+                        {
+                            <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;" @onclick="() => StartTest(test.Code)">
+                                ▶ Start
+                            </button>
+                        }
+                        else if (test.Status == "InProgress")
+                        {
+                            <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;" @onclick="() => StartTest(test.Code)">
+                                ▶ Resume
+                            </button>
+                        }
+                        else if (test.Status == "Completed")
+                        {
+                            <button class="btn btn-outline btn-sm" style="width:100%; justify-content:center;" disabled>
+                                ✓ Completed
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline btn-sm" style="width:100%; justify-content:center; opacity:0.4;" disabled>
+                                🔒 Locked
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private OverviewData? overview;
+    private bool loading = true, resetting = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await LoadOverview(); StateHasChanged(); }
+    }
+
+    private async Task LoadOverview()
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<ApiResponse<OverviewData>>("api/assessment/overview");
+            overview = resp?.Data;
+        }
+        catch { }
+        loading = false;
+    }
+
+    private async Task StartTest(string code)
+    {
+        Nav.NavigateTo($"/student/assessment/test/{code}");
+    }
+
+    private async Task ResetAssessment()
+    {
+        resetting = true;
+        StateHasChanged();
+        try
+        {
+            await Api.PostAsJsonAsync("api/assessment/reset", new { });
+            await LoadOverview();
+        }
+        catch { }
+        resetting = false;
+        StateHasChanged();
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "Completed" => "badge-green",
+        "Available" => "badge-primary",
+        "InProgress" => "badge-gold",
+        _ => "badge-primary"
+    };
+
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Completed" => "✓ Done",
+        "Available" => "Ready",
+        "InProgress" => "In progress",
+        _ => "🔒 Locked"
+    };
+
+    class OverviewData
+    {
+        public long SessionId { get; set; }
+        public int CompletedCount { get; set; }
+        public int TotalCount { get; set; }
+        public bool AllCompleted { get; set; }
+        public Guid? SavedReportId { get; set; }
+        public List<SubTestCard> Tests { get; set; } = new();
+    }
+
+    class SubTestCard
+    {
+        public long Id { get; set; }
+        public string Code { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string? Description { get; set; }
+        public string? Icon { get; set; }
+        public string? Category { get; set; }
+        public int DurationMinutes { get; set; }
+        public int TotalQuestions { get; set; }
+        public string Status { get; set; } = "";
+        public int? AnsweredCount { get; set; }
+    }
+}

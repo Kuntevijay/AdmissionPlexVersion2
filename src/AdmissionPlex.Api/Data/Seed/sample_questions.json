@@ -1,0 +1,119 @@
+{
+  "streamSelectorQuestions": [
+    {"text":"I enjoy solving mathematical puzzles and equations.","options":[{"text":"Strongly Agree","score":3,"stream":"Science"},{"text":"Agree","score":2,"stream":"Science"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":2,"stream":"Arts"},{"text":"Strongly Disagree","score":3,"stream":"Arts"}]},
+    {"text":"I like reading about business strategies and market trends.","options":[{"text":"Strongly Agree","score":3,"stream":"Commerce"},{"text":"Agree","score":2,"stream":"Commerce"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I enjoy creative writing, painting or music.","options":[{"text":"Strongly Agree","score":3,"stream":"Arts"},{"text":"Agree","score":2,"stream":"Arts"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":2,"stream":"Science"},{"text":"Strongly Disagree","score":3,"stream":"Science"}]},
+    {"text":"I am fascinated by how machines and technology work.","options":[{"text":"Strongly Agree","score":3,"stream":"Science"},{"text":"Agree","score":2,"stream":"Science"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I enjoy managing money, budgeting, and financial planning.","options":[{"text":"Strongly Agree","score":3,"stream":"Commerce"},{"text":"Agree","score":2,"stream":"Commerce"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I like debating, discussing social issues and current affairs.","options":[{"text":"Strongly Agree","score":3,"stream":"Arts"},{"text":"Agree","score":2,"stream":"Arts"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I enjoy conducting science experiments and lab work.","options":[{"text":"Strongly Agree","score":3,"stream":"Science"},{"text":"Agree","score":2,"stream":"Science"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I am interested in learning about stock markets and investments.","options":[{"text":"Strongly Agree","score":3,"stream":"Commerce"},{"text":"Agree","score":2,"stream":"Commerce"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I enjoy learning new languages and literature.","options":[{"text":"Strongly Agree","score":3,"stream":"Arts"},{"text":"Agree","score":2,"stream":"Arts"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":0,"stream":null},{"text":"Strongly Disagree","score":0,"stream":null}]},
+    {"text":"I love solving complex logic and reasoning problems.","options":[{"text":"Strongly Agree","score":3,"stream":"Science"},{"text":"Agree","score":2,"stream":"Science"},{"text":"Neutral","score":1,"stream":null},{"text":"Disagree","score":2,"stream":"Commerce"},{"text":"Strongly Disagree","score":3,"stream":"Arts"}]}
+  ],
+  "interestQuestions": {
+    "FA": [
+      {"text":"I enjoy drawing, sketching, or painting in my free time.","type":"Likert"},
+      {"text":"I appreciate visiting art galleries and museums.","type":"Likert"},
+      {"text":"I like designing things — posters, logos, or crafts.","type":"Likert"}
+    ],
+    "PA": [
+      {"text":"I enjoy singing, dancing, or acting on stage.","type":"Likert"},
+      {"text":"I like watching and analysing performances (theatre, dance, music).","type":"Likert"},
+      {"text":"I enjoy expressing myself through creative performances.","type":"Likert"}
+    ],
+    "MT": [
+      {"text":"I enjoy assembling, repairing, or building things.","type":"Likert"},
+      {"text":"I am curious about how machines and gadgets work internally.","type":"Likert"},
+      {"text":"I like working with tools, electronics, or mechanical devices.","type":"Likert"}
+    ],
+    "ME": [
+      {"text":"I prefer tasks that require careful attention to detail.","type":"Likert"},
+      {"text":"I enjoy organizing files, data, or schedules systematically.","type":"Likert"},
+      {"text":"I like following step-by-step procedures to complete work.","type":"Likert"}
+    ],
+    "PI": [
+      {"text":"I enjoy convincing others and presenting ideas persuasively.","type":"Likert"},
+      {"text":"I like leading group discussions and team activities.","type":"Likert"},
+      {"text":"I am comfortable negotiating and influencing people's decisions.","type":"Likert"}
+    ],
+    "SO": [
+      {"text":"I enjoy volunteering and contributing to social causes.","type":"Likert"},
+      {"text":"I like helping others solve their personal problems.","type":"Likert"},
+      {"text":"I feel satisfied when I make a positive impact on society.","type":"Likert"}
+    ],
+    "WN": [
+      {"text":"I enjoy working with numbers, statistics, and calculations.","type":"Likert"},
+      {"text":"I like solving mathematical puzzles and brain teasers.","type":"Likert"},
+      {"text":"I find it satisfying to analyse numerical data and patterns.","type":"Likert"}
+    ],
+    "RA": [
+      {"text":"I enjoy conducting experiments and testing hypotheses.","type":"Likert"},
+      {"text":"I like reading about scientific discoveries and research.","type":"Likert"},
+      {"text":"I am curious about why things work the way they do.","type":"Likert"}
+    ],
+    "LU": [
+      {"text":"I enjoy reading books, articles, and essays.","type":"Likert"},
+      {"text":"I like writing stories, poems, or articles.","type":"Likert"},
+      {"text":"I enjoy learning new languages and their grammar.","type":"Likert"}
+    ],
+    "OS": [
+      {"text":"I enjoy playing outdoor sports and physical activities.","type":"Likert"},
+      {"text":"I like trekking, camping, and adventure activities.","type":"Likert"},
+      {"text":"I prefer being outdoors rather than sitting at a desk.","type":"Likert"}
+    ]
+  },
+  "aptitudeQuestions": {
+    "SA": [
+      {"text":"In the sequence: A1B, C2D, E3F, G4H — what comes next?","options":[{"text":"I5J","correct":true,"score":1},{"text":"H5I","correct":false,"score":0},{"text":"I4J","correct":false,"score":0},{"text":"J5K","correct":false,"score":0}]},
+      {"text":"If APPLE is coded as 14423, what is the code for PALE?","options":[{"text":"4123","correct":true,"score":1},{"text":"4132","correct":false,"score":0},{"text":"3142","correct":false,"score":0},{"text":"4213","correct":false,"score":0}]},
+      {"text":"How many triangles are in this figure: A square with both diagonals drawn?","options":[{"text":"4","correct":true,"score":1},{"text":"2","correct":false,"score":0},{"text":"6","correct":false,"score":0},{"text":"8","correct":false,"score":0}]}
+    ],
+    "NC": [
+      {"text":"What is 47 × 23?","options":[{"text":"1081","correct":true,"score":1},{"text":"1071","correct":false,"score":0},{"text":"1091","correct":false,"score":0},{"text":"1061","correct":false,"score":0}]},
+      {"text":"What is 15% of 240?","options":[{"text":"36","correct":true,"score":1},{"text":"34","correct":false,"score":0},{"text":"38","correct":false,"score":0},{"text":"32","correct":false,"score":0}]},
+      {"text":"If 3/4 of a number is 60, what is the number?","options":[{"text":"80","correct":true,"score":1},{"text":"75","correct":false,"score":0},{"text":"90","correct":false,"score":0},{"text":"45","correct":false,"score":0}]}
+    ],
+    "MA": [
+      {"text":"A lever with the fulcrum in the middle — if you push one side down, the other side:","options":[{"text":"Goes up","correct":true,"score":1},{"text":"Stays the same","correct":false,"score":0},{"text":"Goes down","correct":false,"score":0},{"text":"Breaks","correct":false,"score":0}]},
+      {"text":"Which simple machine is a ramp?","options":[{"text":"Inclined plane","correct":true,"score":1},{"text":"Pulley","correct":false,"score":0},{"text":"Lever","correct":false,"score":0},{"text":"Wheel and axle","correct":false,"score":0}]},
+      {"text":"Gears that mesh together rotate in:","options":[{"text":"Opposite directions","correct":true,"score":1},{"text":"Same direction","correct":false,"score":0},{"text":"Random directions","correct":false,"score":0},{"text":"They don't rotate","correct":false,"score":0}]}
+    ],
+    "NA": [
+      {"text":"A train travels 120 km in 2 hours. What is its speed?","options":[{"text":"60 km/h","correct":true,"score":1},{"text":"80 km/h","correct":false,"score":0},{"text":"40 km/h","correct":false,"score":0},{"text":"100 km/h","correct":false,"score":0}]},
+      {"text":"If 5 workers can complete a job in 12 days, how many days will 10 workers take?","options":[{"text":"6 days","correct":true,"score":1},{"text":"8 days","correct":false,"score":0},{"text":"10 days","correct":false,"score":0},{"text":"4 days","correct":false,"score":0}]},
+      {"text":"A shopkeeper buys an item for ₹200 and sells it for ₹250. What is the profit percentage?","options":[{"text":"25%","correct":true,"score":1},{"text":"20%","correct":false,"score":0},{"text":"50%","correct":false,"score":0},{"text":"30%","correct":false,"score":0}]}
+    ],
+    "VA": [
+      {"text":"Choose the synonym of 'Eloquent':","options":[{"text":"Articulate","correct":true,"score":1},{"text":"Silent","correct":false,"score":0},{"text":"Confused","correct":false,"score":0},{"text":"Boring","correct":false,"score":0}]},
+      {"text":"Choose the antonym of 'Abundant':","options":[{"text":"Scarce","correct":true,"score":1},{"text":"Plenty","correct":false,"score":0},{"text":"Excess","correct":false,"score":0},{"text":"Rich","correct":false,"score":0}]},
+      {"text":"Fill in the blank: The scientist ___ a new theory about gravity.","options":[{"text":"proposed","correct":true,"score":1},{"text":"supposed","correct":false,"score":0},{"text":"disposed","correct":false,"score":0},{"text":"composed","correct":false,"score":0}]}
+    ],
+    "LA": [
+      {"text":"All roses are flowers. Some flowers are red. Which is true?","options":[{"text":"Some roses may be red","correct":true,"score":1},{"text":"All roses are red","correct":false,"score":0},{"text":"No roses are red","correct":false,"score":0},{"text":"All flowers are roses","correct":false,"score":0}]},
+      {"text":"Complete the series: 2, 6, 12, 20, ___","options":[{"text":"30","correct":true,"score":1},{"text":"28","correct":false,"score":0},{"text":"32","correct":false,"score":0},{"text":"24","correct":false,"score":0}]},
+      {"text":"If A > B, B > C, and C > D, then:","options":[{"text":"A > D","correct":true,"score":1},{"text":"D > A","correct":false,"score":0},{"text":"A = D","correct":false,"score":0},{"text":"Cannot determine","correct":false,"score":0}]}
+    ],
+    "SP": [
+      {"text":"If a cube is painted red on all faces and cut into 27 small cubes, how many have exactly 2 faces painted?","options":[{"text":"12","correct":true,"score":1},{"text":"8","correct":false,"score":0},{"text":"6","correct":false,"score":0},{"text":"10","correct":false,"score":0}]},
+      {"text":"Which shape do you get when you unfold a cylinder?","options":[{"text":"Rectangle + 2 circles","correct":true,"score":1},{"text":"Square + 2 circles","correct":false,"score":0},{"text":"Triangle + circle","correct":false,"score":0},{"text":"Just a rectangle","correct":false,"score":0}]},
+      {"text":"Mirror image of 'AMBULANCE' when written reversed reads as:","options":[{"text":"AMBULANCE","correct":true,"score":1},{"text":"ECNALUBMA","correct":false,"score":0},{"text":"AMBVLANCE","correct":false,"score":0},{"text":"ECNALUEMA","correct":false,"score":0}]}
+    ]
+  },
+  "careers": [
+    {"title":"Software Engineering","stream":"Science","summary":"Design and build software applications, websites, and systems.","educationPath":"B.Tech (CSE/IT) via JEE/MHT-CET or BCA + MCA","educationCost":"₹2L - ₹15L","salaryMin":400000,"salaryMax":2500000,"growth":"VeryHigh","interestWeights":{"MT":0.3,"WN":0.3,"RA":0.2,"ME":0.2},"aptitudeWeights":{"LA":0.3,"NC":0.2,"NA":0.2,"SP":0.15,"SA":0.15}},
+    {"title":"Medicine (MBBS)","stream":"Science","summary":"Diagnose and treat illnesses. Become a doctor or medical specialist.","educationPath":"NEET → MBBS (5.5 yrs) → MD/MS specialization","educationCost":"₹5L - ₹50L","salaryMin":600000,"salaryMax":3000000,"growth":"High","interestWeights":{"RA":0.3,"SO":0.3,"ME":0.2,"PI":0.2},"aptitudeWeights":{"NC":0.2,"VA":0.2,"LA":0.2,"MA":0.2,"SA":0.2}},
+    {"title":"Architecture","stream":"Science","summary":"Design buildings, spaces, and structures combining art with engineering.","educationPath":"NATA/JEE Paper 2 → B.Arch (5 yrs)","educationCost":"₹3L - ₹20L","salaryMin":300000,"salaryMax":1800000,"growth":"Medium","interestWeights":{"FA":0.4,"MT":0.2,"ME":0.2,"RA":0.2},"aptitudeWeights":{"SP":0.4,"MA":0.2,"LA":0.2,"NC":0.1,"VA":0.1}},
+    {"title":"Data Science","stream":"Science","summary":"Analyse complex data to help organizations make better decisions.","educationPath":"B.Tech/B.Sc (CS/Stats) + M.Sc/PG Diploma in Data Science","educationCost":"₹3L - ₹12L","salaryMin":500000,"salaryMax":3000000,"growth":"VeryHigh","interestWeights":{"WN":0.3,"RA":0.3,"MT":0.2,"ME":0.2},"aptitudeWeights":{"LA":0.3,"NC":0.3,"NA":0.2,"SA":0.1,"SP":0.1}},
+    {"title":"Chartered Accountancy","stream":"Commerce","summary":"Audit, tax planning, financial consulting, and accounting expertise.","educationPath":"CA Foundation → Intermediate → Final (4-5 yrs)","educationCost":"₹1L - ₹3L","salaryMin":500000,"salaryMax":2500000,"growth":"High","interestWeights":{"WN":0.4,"ME":0.3,"PI":0.2,"RA":0.1},"aptitudeWeights":{"NC":0.3,"NA":0.3,"LA":0.2,"VA":0.1,"SA":0.1}},
+    {"title":"Business Management (MBA)","stream":"Commerce","summary":"Lead organizations, manage teams, and drive business strategy.","educationPath":"BBA/B.Com + MBA (CAT/XAT/GMAT)","educationCost":"₹5L - ₹25L","salaryMin":600000,"salaryMax":3500000,"growth":"High","interestWeights":{"PI":0.3,"ME":0.2,"WN":0.2,"SO":0.15,"LU":0.15},"aptitudeWeights":{"VA":0.25,"LA":0.25,"NC":0.2,"NA":0.15,"SA":0.15}},
+    {"title":"Banking & Finance","stream":"Commerce","summary":"Work in banks, investment firms, insurance, and financial institutions.","educationPath":"B.Com/BBA + MBA Finance or Banking exams (IBPS/SBI)","educationCost":"₹2L - ₹10L","salaryMin":400000,"salaryMax":2000000,"growth":"High","interestWeights":{"WN":0.35,"ME":0.25,"PI":0.2,"RA":0.2},"aptitudeWeights":{"NC":0.3,"NA":0.25,"LA":0.2,"VA":0.15,"SA":0.1}},
+    {"title":"Fine Arts & Design","stream":"Arts","summary":"Create visual art, illustrations, graphic designs, and multimedia content.","educationPath":"BFA/B.Des (NID/NIFT entrance) or B.A. Fine Arts","educationCost":"₹2L - ₹15L","salaryMin":250000,"salaryMax":1500000,"growth":"High","interestWeights":{"FA":0.5,"PA":0.2,"LU":0.15,"ME":0.15},"aptitudeWeights":{"SP":0.4,"VA":0.2,"LA":0.2,"SA":0.1,"MA":0.1}},
+    {"title":"Journalism & Mass Communication","stream":"Arts","summary":"Report news, create media content, and communicate stories to the public.","educationPath":"BJMC/BA Journalism → Masters in Mass Communication","educationCost":"₹2L - ₹8L","salaryMin":300000,"salaryMax":1200000,"growth":"Medium","interestWeights":{"LU":0.35,"PI":0.25,"SO":0.2,"OS":0.2},"aptitudeWeights":{"VA":0.35,"LA":0.25,"SA":0.2,"SP":0.1,"NC":0.1}},
+    {"title":"Teaching & Education","stream":"Arts","summary":"Shape young minds as a teacher, professor, or education administrator.","educationPath":"BA/B.Sc + B.Ed or Integrated B.Ed programs","educationCost":"₹1L - ₹5L","salaryMin":300000,"salaryMax":1200000,"growth":"Medium","interestWeights":{"SO":0.3,"LU":0.25,"PI":0.25,"RA":0.2},"aptitudeWeights":{"VA":0.3,"LA":0.25,"NC":0.15,"SA":0.15,"SP":0.15}},
+    {"title":"Law","stream":"Arts","summary":"Practice law, advocate for justice, and provide legal counsel.","educationPath":"CLAT/LSAT → BA LLB (5 yrs) or LLB (3 yrs after graduation)","educationCost":"₹3L - ₹15L","salaryMin":400000,"salaryMax":2500000,"growth":"High","interestWeights":{"LU":0.3,"PI":0.25,"SO":0.25,"RA":0.2},"aptitudeWeights":{"VA":0.35,"LA":0.3,"SA":0.15,"NC":0.1,"SP":0.1}},
+    {"title":"Psychology & Counselling","stream":"Arts","summary":"Understand human behavior and provide mental health support.","educationPath":"BA/B.Sc Psychology → MA/M.Sc Psychology → RCI license","educationCost":"₹2L - ₹8L","salaryMin":300000,"salaryMax":1500000,"growth":"High","interestWeights":{"SO":0.35,"PI":0.25,"RA":0.2,"LU":0.2},"aptitudeWeights":{"VA":0.3,"LA":0.25,"SA":0.2,"NC":0.15,"SP":0.1}},
+    {"title":"Athlete / Sports","stream":"Arts","summary":"Compete professionally in sports or work in sports management and coaching.","educationPath":"Sports academies, B.P.Ed, Sports Management courses","educationCost":"₹1L - ₹10L","salaryMin":200000,"salaryMax":5000000,"growth":"Medium","interestWeights":{"OS":0.5,"SO":0.2,"PI":0.15,"ME":0.15},"aptitudeWeights":{"SA":0.3,"SP":0.25,"MA":0.2,"LA":0.15,"VA":0.1}},
+    {"title":"Civil Services (IAS/IPS)","stream":"Arts","summary":"Serve the nation in administrative, police, or foreign services.","educationPath":"Any graduation + UPSC CSE preparation (2-3 yrs)","educationCost":"₹1L - ₹5L","salaryMin":800000,"salaryMax":2500000,"growth":"Medium","interestWeights":{"SO":0.3,"PI":0.25,"LU":0.25,"RA":0.2},"aptitudeWeights":{"VA":0.25,"LA":0.25,"NC":0.2,"SA":0.15,"NA":0.15}}
+  ]
+}

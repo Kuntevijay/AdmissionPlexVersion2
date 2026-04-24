@@ -1,67 +1,247 @@
 @page "/admin/questions"
 @layout AdminLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Question Bank - Admin</PageTitle>
 
 <div class="topbar">
-    <div><h2>Question Bank</h2><p class="topbar-subtitle">Manage questions for Stream Selector and Psychometric tests</p></div>
-    <div class="topbar-actions"><a href="/admin/questions/create" class="btn btn-primary">+ Add Question</a></div>
+    <div><h2>Question Bank</h2><p class="topbar-subtitle">Import questions for Career Quiz and Psychometric Assessment</p></div>
+    <button class="btn btn-primary" @onclick="() => showImport = !showImport">📥 Import Questions</button>
+</div>
+
+@if (!string.IsNullOrEmpty(successMsg))
+{ <div style="background:rgba(34,197,94,0.1); color:var(--ap-green); padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@successMsg</div> }
+@if (!string.IsNullOrEmpty(errorMsg))
+{ <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@errorMsg</div> }
+
+@if (showImport)
+{
+    <div class="card" style="margin-bottom:24px; border:2px dashed var(--ap-primary);">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">Import questions</h3>
+
+        <div class="grid-2" style="gap:24px; margin-bottom:20px;">
+            <div>
+                <h4 style="font-size:14px; font-weight:600; margin-bottom:8px;">Paste JSON</h4>
+                <textarea class="form-textarea" style="min-height:220px; font-family:monospace; font-size:11px;" @bind="jsonInput"
+                          placeholder='{"section":"number_calculation","aptitude_code":"NC","questions":[...]}'></textarea>
+                <button class="btn btn-primary btn-sm" style="margin-top:8px;" @onclick="ImportJson" disabled="@importing">
+                    @(importing ? "Importing..." : "Import")
+                </button>
+            </div>
+            <div>
+                <h4 style="font-size:14px; font-weight:600; margin-bottom:8px;">Upload .json file</h4>
+                <InputFile OnChange="HandleFile" accept=".json" style="margin-bottom:12px;" />
+                <p style="font-size:12px; color:var(--ap-text-muted); margin-bottom:16px;">
+                    Upload one file per section. Supports up to 200+ questions per file.
+                </p>
+
+                <div style="padding:16px; background:var(--ap-bg); border-radius:8px;">
+                    <h4 style="font-size:13px; font-weight:600; margin-bottom:6px;">Or load sample data</h4>
+                    <button class="btn btn-primary btn-sm" @onclick="SeedSample" disabled="@importing">
+                        @(importing ? "Loading..." : "Load 61 sample questions")
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Format reference -->
+        <div style="background:var(--ap-bg); border-radius:8px; padding:16px;">
+            <h4 style="font-size:13px; font-weight:600; margin-bottom:8px;">Your JSON format</h4>
+            <div class="grid-3" style="gap:12px;">
+                <div>
+                    <div style="font-size:11px; font-weight:600; color:var(--ap-sky); margin-bottom:4px;">Aptitude (MCQ)</div>
+                    <div style="font-family:monospace; font-size:10px; background:var(--ap-surface); padding:8px; border-radius:6px; border:1px solid var(--ap-border); white-space:pre; line-height:1.5;">{
+  "section": "number_calc",
+  "aptitude_code": "NC",
+  "questions": [{
+    "question_en": "ADD..",
+    "question_mr": "बेरीज..",
+    "options": {
+      "a":"50","b":"51",
+      "c":"49","d":"52"
+    },
+    "correct_answer": "a"
+  }]
+}</div>
+                    <div style="font-size:10px; color:var(--ap-text-muted); margin-top:4px;">SA · NC · MA · NA · VA · LA · SP</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; font-weight:600; color:var(--ap-coral); margin-bottom:4px;">Interest (Likert)</div>
+                    <div style="font-family:monospace; font-size:10px; background:var(--ap-surface); padding:8px; border-radius:6px; border:1px solid var(--ap-border); white-space:pre; line-height:1.5;">{
+  "section": "interest",
+  "section_type": "interest",
+  "interest_code": "FA",
+  "questions": [{
+    "question_en": "I enjoy.."
+  }]
+}
+<br>Or per-question code:
+  "interest_code": "FA"</div>
+                    <div style="font-size:10px; color:var(--ap-text-muted); margin-top:4px;">FA PA MT ME PI SO WN RA LU OS</div>
+                </div>
+                <div>
+                    <div style="font-size:11px; font-weight:600; color:var(--ap-green); margin-bottom:4px;">Quiz (stream-tagged)</div>
+                    <div style="font-family:monospace; font-size:10px; background:var(--ap-surface); padding:8px; border-radius:6px; border:1px solid var(--ap-border); white-space:pre; line-height:1.5;">{
+  "section": "career_quiz",
+  "section_type": "quiz",
+  "questions": [{
+    "question_en": "Prefer?",
+    "options": {
+      "a":"Lab","b":"Biz",
+      "c":"Art"
+    },
+    "option_streams": {
+      "a":"Science",
+      "b":"Commerce",
+      "c":"Arts"
+    }
+  }]
+}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Counts per category -->
+<div class="grid-3" style="margin-bottom:20px;">
+    <div class="card" style="padding:14px;">
+        <div style="font-weight:600; font-size:13px; color:var(--ap-green); margin-bottom:8px;">Quiz (@quizCount)</div>
+        <div style="font-size:12px; color:var(--ap-text-muted);">Stream selector questions</div>
+    </div>
+    <div class="card" style="padding:14px;">
+        <div style="font-weight:600; font-size:13px; color:var(--ap-coral); margin-bottom:8px;">Interest (@interestCount)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            @foreach (var kv in iCounts)
+            { <span style="font-size:10px; background:var(--ap-bg); padding:2px 6px; border-radius:4px;">@kv.Key: <strong style="color:@(kv.Value>0?"var(--ap-green)":"var(--ap-red)")">@kv.Value</strong></span> }
+        </div>
+    </div>
+    <div class="card" style="padding:14px;">
+        <div style="font-weight:600; font-size:13px; color:var(--ap-sky); margin-bottom:8px;">Aptitude (@aptitudeCount)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            @foreach (var kv in aCounts)
+            { <span style="font-size:10px; background:var(--ap-bg); padding:2px 6px; border-radius:4px;">@kv.Key: <strong style="color:@(kv.Value>0?"var(--ap-green)":"var(--ap-red)")">@kv.Value</strong></span> }
+        </div>
+    </div>
 </div>
 
 <!-- Filters -->
-<div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
-    <button class="btn btn-sm @(filter=="All"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("All")'>All</button>
-    <button class="btn btn-sm @(filter=="StreamSelector"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("StreamSelector")'>Stream Selector</button>
-    <button class="btn btn-sm @(filter=="Interest"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Interest")'>Interest</button>
-    <button class="btn btn-sm @(filter=="Aptitude"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Aptitude")'>Aptitude</button>
+<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+    <button class="btn btn-sm @(filter=="All"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("All")'>All (@totalCount)</button>
+    <button class="btn btn-sm @(filter=="StreamSelector"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("StreamSelector")'>Quiz (@quizCount)</button>
+    <button class="btn btn-sm @(filter=="Interest"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Interest")'>Interest (@interestCount)</button>
+    <button class="btn btn-sm @(filter=="Aptitude"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Aptitude")'>Aptitude (@aptitudeCount)</button>
 </div>
 
+<!-- Question list -->
 <div class="card" style="overflow:hidden; padding:0;">
-    @if (questions == null)
+    @if (questions == null) { <div class="spinner"></div> }
+    else if (questions.Any())
     {
-        <div class="spinner"></div>
-    }
-    else
-    {
-        @foreach (var q in questions)
+        @foreach (var q in questions.Take(100))
         {
-            <div style="display:flex; align-items:center; padding:16px 24px; border-bottom:1px solid var(--ap-border); gap:16px;">
+            <div style="display:flex; align-items:center; padding:10px 20px; border-bottom:1px solid var(--ap-border); gap:10px;">
                 <div style="flex:1;">
-                    <div style="font-weight:600; font-size:14px;">@q.QuestionText</div>
-                    <div style="display:flex; gap:8px; margin-top:6px;">
-                        <span class="badge badge-lavender">@q.SectionType</span>
-                        <span class="badge badge-sky">@(q.InterestCategoryName ?? q.AptitudeCategoryName ?? "")</span>
-                        <span class="badge badge-gold">@q.QuestionType</span>
-                    </div>
+                    <div style="font-weight:500; font-size:13px; margin-bottom:3px;">@q.QuestionText</div>
+                    <span class="badge @TypeBadge(q.SectionType)" style="font-size:10px;">@q.SectionType</span>
+                    @if (!string.IsNullOrEmpty(q.InterestCategoryName)) { <span class="badge badge-primary" style="font-size:10px;">@q.InterestCategoryName</span> }
+                    @if (!string.IsNullOrEmpty(q.AptitudeCategoryName)) { <span class="badge badge-primary" style="font-size:10px;">@q.AptitudeCategoryName</span> }
+                    <span class="badge badge-gold" style="font-size:10px;">@q.Options.Count opts</span>
                 </div>
-                <button class="btn btn-sm btn-outline">Edit</button>
-                <button class="btn btn-sm btn-danger">Delete</button>
+                <button class="btn btn-sm btn-danger" style="font-size:10px; padding:3px 8px;" @onclick="() => Delete(q.Id)">Del</button>
             </div>
         }
-        @if (!questions.Any())
-        {
-            <div style="padding:60px; text-align:center; color:var(--ap-text-muted);">No questions found. Click "+ Add Question" to create one.</div>
-        }
+        @if (questions.Count > 100) { <div style="padding:12px; text-align:center; font-size:13px; color:var(--ap-text-muted);">Showing 100 of @questions.Count questions</div> }
     }
+    else { <div style="padding:48px; text-align:center; color:var(--ap-text-muted);">No questions. Import or seed sample data.</div> }
 </div>
 
 @code {
     private List<QuestionDto>? questions;
     private string filter = "All";
+    private bool showImport, importing;
+    private string jsonInput = "", successMsg = "", errorMsg = "";
+    private int totalCount, quizCount, interestCount, aptitudeCount;
+    private Dictionary<string, int> iCounts = new(), aCounts = new();
 
-    protected override async Task OnInitializedAsync() => await LoadQuestions();
+    protected override async Task OnAfterRenderAsync(bool firstRender) { if (firstRender) { await Load(); StateHasChanged(); } }
 
-    private async Task SetFilter(string f) { filter = f; await LoadQuestions(); }
+    async Task SetFilter(string f) { filter = f; await Load(); StateHasChanged(); }
 
-    private async Task LoadQuestions()
+    async Task Load()
     {
         try
         {
-            var url = filter == "All" ? "api/questions" : $"api/questions?sectionType={filter}";
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<QuestionDto>>>(url);
-            questions = response?.Data ?? new();
+            var all = (await Api.GetFromJsonAsync<ApiResponse<List<QuestionDto>>>("api/questions?activeOnly=true"))?.Data ?? new();
+            totalCount = all.Count;
+            quizCount = all.Count(q => q.SectionType == "StreamSelector");
+            interestCount = all.Count(q => q.SectionType == "Interest");
+            aptitudeCount = all.Count(q => q.SectionType == "Aptitude");
+
+            iCounts = new() { ["FA"]=0,["PA"]=0,["MT"]=0,["ME"]=0,["PI"]=0,["SO"]=0,["WN"]=0,["RA"]=0,["LU"]=0,["OS"]=0 };
+            aCounts = new() { ["SA"]=0,["NC"]=0,["MA"]=0,["NA"]=0,["VA"]=0,["LA"]=0,["SP"]=0 };
+            foreach (var q in all.Where(q => q.SectionType == "Interest" && !string.IsNullOrEmpty(q.InterestCategoryName)))
+            { var k = MapInterestCode(q.InterestCategoryName); if (iCounts.ContainsKey(k)) iCounts[k]++; }
+            foreach (var q in all.Where(q => q.SectionType == "Aptitude" && !string.IsNullOrEmpty(q.AptitudeCategoryName)))
+            { var k = MapAptitudeCode(q.AptitudeCategoryName); if (aCounts.ContainsKey(k)) aCounts[k]++; }
+
+            var url = filter == "All" ? "api/questions?activeOnly=true" : $"api/questions?sectionType={filter}&activeOnly=true";
+            questions = (await Api.GetFromJsonAsync<ApiResponse<List<QuestionDto>>>(url))?.Data ?? new();
         }
         catch { questions = new(); }
     }
+
+    async Task ImportJson()
+    {
+        if (string.IsNullOrWhiteSpace(jsonInput)) { errorMsg = "Paste JSON first."; return; }
+        importing = true; errorMsg = ""; successMsg = ""; StateHasChanged();
+        try
+        {
+            var resp = await Api.PostAsJsonAsync("api/import/section", System.Text.Json.JsonDocument.Parse(jsonInput).RootElement);
+            if (resp.IsSuccessStatusCode)
+            {
+                var r = await resp.Content.ReadFromJsonAsync<ApiResponse<ImportRes>>();
+                successMsg = $"Imported {r?.Data?.QuestionsCreated ?? 0} questions ({r?.Data?.QuestionsSkipped ?? 0} skipped). Total: {r?.Data?.TotalInBank ?? 0}";
+                jsonInput = ""; showImport = false; await Load();
+            }
+            else errorMsg = "Import failed. Check format.";
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+        importing = false; StateHasChanged();
+    }
+
+    async Task HandleFile(InputFileChangeEventArgs e)
+    {
+        importing = true; errorMsg = ""; successMsg = ""; StateHasChanged();
+        try
+        {
+            using var s = e.File.OpenReadStream(10 * 1024 * 1024);
+            using var r = new StreamReader(s);
+            jsonInput = await r.ReadToEndAsync();
+            await ImportJson();
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+        importing = false; StateHasChanged();
+    }
+
+    async Task SeedSample()
+    {
+        importing = true; errorMsg = ""; successMsg = ""; StateHasChanged();
+        try
+        {
+            var resp = await Api.PostAsJsonAsync("api/import/seed-sample-data", new { });
+            if (resp.IsSuccessStatusCode) { successMsg = "Sample data loaded."; showImport = false; await Load(); }
+            else errorMsg = "Failed — data may already exist.";
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+        importing = false; StateHasChanged();
+    }
+
+    async Task Delete(long id) { await Api.DeleteAsync($"api/questions/{id}"); await Load(); StateHasChanged(); }
+
+    string TypeBadge(string t) => t switch { "StreamSelector" => "badge-green", "Interest" => "badge-coral", "Aptitude" => "badge-sky", _ => "badge-primary" };
+    string MapInterestCode(string n) => n switch { "Fine Arts"=>"FA","Performing Arts"=>"PA","Machines & Tools"=>"MT","Methodical"=>"ME","People Interaction"=>"PI","Social"=>"SO","Working With Numbers"=>"WN","Research & Analysis"=>"RA","Language Usage"=>"LU","Outdoor & Sports"=>"OS",_=>"" };
+    string MapAptitudeCode(string n) => n switch { "Speed & Accuracy"=>"SA","Number Calculations"=>"NC","Mechanical Ability"=>"MA","Number Application"=>"NA","Verbal Ability"=>"VA","Logical Ability"=>"LA","Spatial Ability"=>"SP",_=>"" };
+
+    class ImportRes { public int QuestionsCreated { get; set; } public int QuestionsSkipped { get; set; } public int TotalInBank { get; set; } }
 }

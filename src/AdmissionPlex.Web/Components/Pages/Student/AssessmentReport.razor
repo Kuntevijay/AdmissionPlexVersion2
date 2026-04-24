@@ -1,0 +1,187 @@
+@page "/student/assessment/report"
+@layout StudentLayout
+@inject ApiClient Api
+
+<PageTitle>Assessment Report - AdmissionPlex</PageTitle>
+
+@if (loading)
+{
+    <div class="spinner"></div>
+}
+else if (report == null)
+{
+    <div class="card" style="padding:60px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:16px;">📋</div>
+        <h3>Report not available</h3>
+        <p style="color:var(--ap-text-muted);">Complete all 9 sub-tests to generate your career report.</p>
+        <a href="/student/assessment" class="btn btn-primary" style="margin-top:16px;">Go to Assessment →</a>
+    </div>
+}
+else
+{
+    <!-- Section 1: Summary -->
+    <div class="welcome-banner" style="margin-bottom:24px;">
+        <h2>Career Assessment Report</h2>
+        <p>@report.StudentName · @report.TestDate</p>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+        <div class="card" style="text-align:center;">
+            <div style="font-size:12px; color:var(--ap-text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Top interests</div>
+            <div style="font-weight:700; font-size:14px; color:var(--ap-primary);">
+                @string.Join(" · ", report.Top3Interests?.Select(i => i.Name) ?? Array.Empty<string>())
+            </div>
+        </div>
+        <div class="card" style="text-align:center;">
+            <div style="font-size:12px; color:var(--ap-text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Top aptitudes</div>
+            <div style="font-weight:700; font-size:14px; color:var(--ap-sky);">
+                @string.Join(" · ", report.Top3Aptitudes?.Select(a => a.Name) ?? Array.Empty<string>())
+            </div>
+        </div>
+        <div class="card" style="text-align:center;">
+            <div style="font-size:12px; color:var(--ap-text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">IQ benchmark</div>
+            <div style="font-family:var(--ap-font-display); font-size:32px; color:var(--ap-primary);">@report.OverallIqScore</div>
+            <div style="font-size:12px; color:var(--ap-text-muted);">@report.IqCategory</div>
+        </div>
+    </div>
+
+    <!-- Section 2: Interest Profile -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Interest profile</h3>
+        @if (report.AllInterestScores != null)
+        {
+            @foreach (var score in report.AllInterestScores.OrderByDescending(s => s.PercentileScore))
+            {
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                    <span style="width:160px; font-size:13px; font-weight:600;">@score.Name</span>
+                    <div style="flex:1; height:24px; background:var(--ap-border); border-radius:12px; overflow:hidden;">
+                        <div style="height:100%; width:@score.PercentileScore%; background:linear-gradient(90deg, var(--ap-primary), var(--ap-primary-light)); border-radius:12px;"></div>
+                    </div>
+                    <span style="width:40px; text-align:right; font-weight:700; font-size:14px; color:var(--ap-primary);">@score.PercentileScore</span>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Section 3: Aptitude Profile -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Aptitude profile</h3>
+        @if (report.AllAptitudeScores != null)
+        {
+            @foreach (var score in report.AllAptitudeScores.OrderByDescending(s => s.PercentileScore))
+            {
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                    <span style="width:160px; font-size:13px; font-weight:600;">@score.Name</span>
+                    <div style="flex:1; height:24px; background:var(--ap-border); border-radius:12px; overflow:hidden;">
+                        <div style="height:100%; width:@score.PercentileScore%; background:linear-gradient(90deg, var(--ap-sky), var(--ap-lavender)); border-radius:12px;"></div>
+                    </div>
+                    <span style="width:40px; text-align:right; font-weight:700; font-size:14px; color:var(--ap-sky);">@score.PercentileScore</span>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Section 4+5: Career Suitability -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Career suitability</h3>
+        @if (report.AllCareerSuitability != null)
+        {
+            @foreach (var career in report.AllCareerSuitability)
+            {
+                var barColor = career.Tier == "Recommended" ? "var(--ap-green)" : career.Tier == "Considered" ? "var(--ap-gold)" : "var(--ap-border)";
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                    <div style="width:180px;">
+                        <div style="font-size:13px; font-weight:600;">@career.CareerTitle</div>
+                        <div style="font-size:11px; color:var(--ap-text-muted);">@career.StreamName</div>
+                    </div>
+                    <div style="flex:1; height:20px; background:var(--ap-border); border-radius:10px; overflow:hidden;">
+                        <div style="height:100%; width:@career.SuitabilityPct%; background:@barColor; border-radius:10px;"></div>
+                    </div>
+                    <span style="width:40px; text-align:right; font-weight:700; font-size:13px;">@career.SuitabilityPct%</span>
+                    <span class="badge @(career.Tier == "Recommended" ? "badge-green" : career.Tier == "Considered" ? "badge-gold" : "badge-primary")" style="font-size:10px; min-width:70px; text-align:center;">
+                        @career.Tier
+                    </span>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Section 6: Recommended Careers -->
+    @if (report.RecommendedCareers?.Any() == true)
+    {
+        <div class="card" style="margin-bottom:24px;">
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Recommended careers</h3>
+            <div class="grid-2">
+                @foreach (var c in report.RecommendedCareers)
+                {
+                    <div style="border:1px solid var(--ap-border); border-radius:12px; padding:16px; border-left:4px solid var(--ap-green);">
+                        <div style="font-weight:700; font-size:15px;">@c.Title <span style="font-size:12px; color:var(--ap-green);">@c.SuitabilityPct%</span></div>
+                        <span class="badge badge-primary" style="font-size:11px;">@c.StreamName</span>
+                        @if (!string.IsNullOrEmpty(c.EducationPath))
+                        { <div style="font-size:12px; color:var(--ap-text-muted); margin-top:6px;">📚 @c.EducationPath</div> }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Section 7: Careers to Consider -->
+    @if (report.CareersToConsider?.Any() == true)
+    {
+        <div class="card" style="margin-bottom:24px;">
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Careers to consider (with improvement)</h3>
+            <div class="grid-2">
+                @foreach (var c in report.CareersToConsider)
+                {
+                    <div style="border:1px solid var(--ap-border); border-radius:12px; padding:16px; border-left:4px solid var(--ap-gold);">
+                        <div style="font-weight:700; font-size:15px;">@c.Title <span style="font-size:12px; color:var(--ap-gold);">@c.SuitabilityPct%</span></div>
+                        <span class="badge badge-primary" style="font-size:11px;">@c.StreamName</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <p style="text-align:center; font-size:12px; color:var(--ap-text-muted); margin-top:24px;">
+        This report is generated automatically and is for guidance only. A qualified counsellor should review before admission decisions.
+    </p>
+}
+
+@code {
+    private ReportData? report;
+    private bool loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await LoadReport(); StateHasChanged(); }
+    }
+
+    private async Task LoadReport()
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<ApiResponse<ReportData>>("api/assessment/report");
+            report = resp?.Data;
+        }
+        catch { }
+        loading = false;
+    }
+
+    class ReportData
+    {
+        public string StudentName { get; set; } = "";
+        public string? TestDate { get; set; }
+        public int? OverallIqScore { get; set; }
+        public string? IqCategory { get; set; }
+        public List<ScoreItem>? Top3Interests { get; set; }
+        public List<ScoreItem>? Top3Aptitudes { get; set; }
+        public List<ScoreItem>? AllInterestScores { get; set; }
+        public List<ScoreItem>? AllAptitudeScores { get; set; }
+        public List<CareerItem>? AllCareerSuitability { get; set; }
+        public List<CareerItem>? RecommendedCareers { get; set; }
+        public List<CareerItem>? CareersToConsider { get; set; }
+    }
+
+    class ScoreItem { public string Code { get; set; } = ""; public string Name { get; set; } = ""; public decimal PercentileScore { get; set; } }
+    class CareerItem { public string CareerTitle { get; set; } = ""; public string StreamName { get; set; } = ""; public decimal SuitabilityPct { get; set; } public string Tier { get; set; } = ""; public string? EducationPath { get; set; } public string Title { get; set; } = ""; }
+}

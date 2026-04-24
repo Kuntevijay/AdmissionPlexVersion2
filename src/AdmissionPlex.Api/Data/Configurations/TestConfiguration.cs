@@ -155,3 +155,18 @@ public class CareerSuitabilityScoreConfiguration : IEntityTypeConfiguration<Care
         builder.Property(s => s.SuitabilityPct).HasPrecision(5, 2);
     }
 }
+
+public class AssessmentSessionConfiguration : IEntityTypeConfiguration<AssessmentSession>
+{
+    public void Configure(EntityTypeBuilder<AssessmentSession> builder)
+    {
+        builder.ToTable("assessment_sessions");
+        builder.HasIndex(s => s.Uuid).IsUnique();
+        builder.HasOne(s => s.Student).WithMany().HasForeignKey(s => s.StudentId);
+        builder.HasMany(s => s.Attempts).WithOne(a => a.AssessmentSession).HasForeignKey(a => a.AssessmentSessionId);
+        builder.Property(s => s.IqCategory).HasMaxLength(20);
+        builder.Ignore(s => s.InterestScores);
+        builder.Ignore(s => s.AptitudeScores);
+        builder.Ignore(s => s.CareerSuitabilityScores);
+    }
+}

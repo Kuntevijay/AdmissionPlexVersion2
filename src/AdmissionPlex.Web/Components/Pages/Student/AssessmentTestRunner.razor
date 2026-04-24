@@ -1,0 +1,249 @@
+@page "/student/assessment/test/{Code}"
+@layout StudentLayout
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Assessment - AdmissionPlex</PageTitle>
+
+@if (loading)
+{
+    <div style="display:flex; align-items:center; justify-content:center; min-height:60vh;">
+        <div style="text-align:center;"><div class="spinner"></div><p style="color:var(--ap-text-muted); margin-top:16px;">Loading test...</p></div>
+    </div>
+}
+else if (submitted)
+{
+    <div style="display:flex; align-items:center; justify-content:center; min-height:60vh;">
+        <div class="card" style="text-align:center; padding:48px; max-width:500px;">
+            <div style="font-size:56px; margin-bottom:16px;">✓</div>
+            <h2 style="font-family:var(--ap-font-display); font-size:24px; margin-bottom:8px;">@testTitle — Done!</h2>
+            <p style="color:var(--ap-text-muted); margin-bottom:8px;">Answered @submitResult.TotalQuestions questions</p>
+            <p style="color:var(--ap-text-muted); margin-bottom:24px;">Progress: @submitResult.CompletedCount / @submitResult.TotalCount sub-tests completed</p>
+
+            @if (submitResult.AllCompleted)
+            {
+                <a href="/student/assessment/report" class="btn btn-primary" style="padding:14px 32px;">📋 View Full Report →</a>
+            }
+            else if (!string.IsNullOrEmpty(submitResult.NextTestCode))
+            {
+                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                    <a href="/student/assessment" class="btn btn-outline">← Back to overview</a>
+                    <a href="/student/assessment/test/@submitResult.NextTestCode" class="btn btn-primary">▶ Next test →</a>
+                </div>
+            }
+            else
+            {
+                <a href="/student/assessment" class="btn btn-primary">← Back to overview</a>
+            }
+        </div>
+    </div>
+}
+else if (testData != null && testData.Questions.Any())
+{
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+            <a href="/student/assessment" style="font-size:13px; color:var(--ap-text-muted); text-decoration:none;">← Back to assessment</a>
+            <h2 style="font-family:var(--ap-font-display); font-size:22px; margin-top:4px;">@testData.Title</h2>
+            <p style="font-size:13px; color:var(--ap-text-muted);">@testData.Description</p>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+        <div style="flex:1; height:6px; background:var(--ap-border); border-radius:3px; overflow:hidden;">
+            <div style="height:100%; width:@ProgressPercent()%; background:var(--ap-primary); border-radius:3px; transition:width 0.3s;"></div>
+        </div>
+        <span style="font-size:13px; color:var(--ap-text-muted);">@answers.Count / @testData.Questions.Count answered</span>
+    </div>
+
+    <!-- Questions (all visible, scroll through) -->
+    @foreach (var (q, i) in testData.Questions.Select((q, i) => (q, i)))
+    {
+        <div class="card" style="margin-bottom:12px; padding:20px 24px;">
+            <div style="font-size:12px; color:var(--ap-text-muted); margin-bottom:6px;">Question @(i + 1)</div>
+            <div style="font-size:15px; font-weight:500; line-height:1.6; margin-bottom:16px;">@q.Text</div>
+
+            @if (q.Type == "Likert")
+            {
+                <!-- Likert buttons in a row -->
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    @for (int idx = 0; idx < q.Options.Count; idx++)
+                    {
+                        var optIdx = idx;
+                        var opt = q.Options[optIdx];
+                        var isSelected = answers.TryGetValue(q.Id, out var sel) && sel == opt.Id;
+                        <button style="flex:1; min-width:100px; padding:10px 12px; border-radius:8px;
+                            border:2px solid @(isSelected ? "var(--ap-primary)" : "var(--ap-border)");
+                            background:@(isSelected ? "rgba(27,77,62,0.08)" : "var(--ap-surface)");
+                            cursor:pointer; text-align:center; font-family:var(--ap-font-body); font-size:13px;
+                            color:@(isSelected ? "var(--ap-primary)" : "var(--ap-text-muted)");
+                            font-weight:@(isSelected ? "600" : "400");"
+                            @onclick="() => SelectAnswer(q.Id, opt.Id)">
+                            @opt.Text
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <!-- MCQ vertical options -->
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    @for (int idx = 0; idx < q.Options.Count; idx++)
+                    {
+                        var optIdx = idx;
+                        var opt = q.Options[optIdx];
+                        var isSelected = answers.TryGetValue(q.Id, out var sel) && sel == opt.Id;
+                        <button style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:8px;
+                            border:2px solid @(isSelected ? "var(--ap-primary)" : "var(--ap-border)");
+                            background:@(isSelected ? "rgba(27,77,62,0.06)" : "var(--ap-surface)");
+                            cursor:pointer; text-align:left; font-family:var(--ap-font-body); font-size:14px; width:100%;"
+                            @onclick="() => SelectAnswer(q.Id, opt.Id)">
+                            <span style="width:24px; height:24px; border-radius:50%; border:2px solid @(isSelected ? "var(--ap-primary)" : "var(--ap-border)");
+                                display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px; font-weight:600;
+                                background:@(isSelected ? "var(--ap-primary)" : "transparent"); color:@(isSelected ? "#fff" : "var(--ap-text-muted)");">
+                                @((char)('A' + optIdx))
+                            </span>
+                            <span>@opt.Text</span>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMsg))
+    {
+        <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:12px; border-radius:8px; font-size:13px; margin-bottom:12px;">@errorMsg</div>
+    }
+
+    <!-- Submit bar (sticky at bottom) -->
+    <div style="position:sticky; bottom:16px; padding:16px; background:var(--ap-surface); border:1px solid var(--ap-border); border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+        <a href="/student/assessment" class="btn btn-outline">← Back</a>
+        <button class="btn btn-primary" style="padding:12px 32px;" @onclick="SubmitTest"
+                disabled="@(submitting || answers.Count < testData.Questions.Count)">
+            @if (submitting) { <span>Submitting...</span> }
+            else if (answers.Count < testData.Questions.Count) { <span>Answer all (@(testData.Questions.Count - answers.Count) left)</span> }
+            else { <span>Submit test →</span> }
+        </button>
+    </div>
+}
+else
+{
+    <div class="card" style="padding:60px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:16px;">❌</div>
+        <h3>@(errorMsg ?? "Could not load test")</h3>
+        <a href="/student/assessment" class="btn btn-primary" style="margin-top:16px;">← Back to assessment</a>
+    </div>
+}
+
+@code {
+    [Parameter] public string Code { get; set; } = "";
+
+    private TestRunData? testData;
+    private Dictionary<long, long> answers = new();
+    private bool loading = true, submitting = false, submitted = false;
+    private string? errorMsg;
+    private string testTitle = "";
+    private SubmitResultData submitResult = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await LoadTest(); StateHasChanged(); }
+    }
+
+    private async Task LoadTest()
+    {
+        try
+        {
+            var resp = await Api.PostAsJsonAsync($"api/assessment/test/{Code}/start", new { });
+            if (resp.IsSuccessStatusCode)
+            {
+                var result = await resp.Content.ReadFromJsonAsync<ApiResponse<TestRunData>>();
+                testData = result?.Data;
+                testTitle = testData?.Title ?? Code;
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                errorMsg = err?.Errors?.FirstOrDefault() ?? "Could not start test.";
+            }
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+        loading = false;
+    }
+
+    private void SelectAnswer(long questionId, long optionId)
+    {
+        answers[questionId] = optionId;
+        StateHasChanged();
+    }
+
+    private int ProgressPercent() =>
+        testData == null || testData.Questions.Count == 0 ? 0 : answers.Count * 100 / testData.Questions.Count;
+
+    private async Task SubmitTest()
+    {
+        if (testData == null) return;
+        submitting = true;
+        errorMsg = null;
+        StateHasChanged();
+
+        try
+        {
+            var body = new
+            {
+                Answers = answers.Select(a => new { QuestionId = a.Key, SelectedOptionId = (long?)a.Value }).ToList()
+            };
+
+            var resp = await Api.PostAsJsonAsync($"api/assessment/test/{Code}/submit", body);
+            if (resp.IsSuccessStatusCode)
+            {
+                var result = await resp.Content.ReadFromJsonAsync<ApiResponse<SubmitResultData>>();
+                submitResult = result?.Data ?? new();
+                submitted = true;
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                errorMsg = err?.Errors?.FirstOrDefault() ?? "Submit failed.";
+            }
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+        submitting = false;
+        StateHasChanged();
+    }
+
+    class TestRunData
+    {
+        public long AttemptId { get; set; }
+        public string Title { get; set; } = "";
+        public string? Description { get; set; }
+        public int TotalQuestions { get; set; }
+        public List<QuestionItem> Questions { get; set; } = new();
+    }
+
+    class QuestionItem
+    {
+        public long Id { get; set; }
+        public string Text { get; set; } = "";
+        public string Type { get; set; } = "";
+        public List<OptionItem> Options { get; set; } = new();
+    }
+
+    class OptionItem
+    {
+        public long Id { get; set; }
+        public string Text { get; set; } = "";
+    }
+
+    class SubmitResultData
+    {
+        public int TotalQuestions { get; set; }
+        public bool AllCompleted { get; set; }
+        public Guid? SavedReportId { get; set; }
+        public string? NextTestCode { get; set; }
+        public int CompletedCount { get; set; }
+        public int TotalCount { get; set; }
+    }
+}

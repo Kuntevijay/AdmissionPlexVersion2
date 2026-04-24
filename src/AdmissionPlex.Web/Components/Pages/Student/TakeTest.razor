@@ -1,0 +1,207 @@
+@page "/student/take-test/{AttemptId:long}"
+@layout StudentLayout
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Taking Test - AdmissionPlex</PageTitle>
+
+@if (loading)
+{
+    <div style="display:flex; align-items:center; justify-content:center; min-height:60vh;">
+        <div style="text-align:center;"><div class="spinner"></div><p style="color:var(--ap-text-muted); margin-top:16px;">Loading your test...</p></div>
+    </div>
+}
+else if (errorMsg != "")
+{
+    <div class="card" style="padding:60px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:16px;">❌</div>
+        <h3>Could not load test</h3>
+        <p style="color:var(--ap-text-muted);">@errorMsg</p>
+        <a href="/student/tests" class="btn btn-primary" style="margin-top:16px;">Back to Tests</a>
+    </div>
+}
+else if (submitted)
+{
+    <div style="display:flex; align-items:center; justify-content:center; min-height:60vh;">
+        <div class="card" style="text-align:center; padding:60px; max-width:500px;">
+            <div style="font-size:64px; margin-bottom:16px;">🎉</div>
+            <h2 style="font-family:var(--ap-font-display); font-size:28px; margin-bottom:12px;">Test Completed!</h2>
+            <p style="color:var(--ap-text-muted); margin-bottom:8px;">Answered: @answers.Count / @questions.Count questions</p>
+            <p style="color:var(--ap-text-muted); margin-bottom:24px;">Your answers have been submitted and scored.</p>
+            <a href="/student/results/@AttemptId" class="btn btn-primary" style="padding:14px 32px; font-size:15px;">View My Report →</a>
+        </div>
+    </div>
+}
+else if (questions.Any())
+{
+    var current = questions[currentIndex];
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h2 style="font-family:var(--ap-font-display); font-size:24px; margin-bottom:4px;">@testTitle</h2>
+            <p style="font-size:13px; color:var(--ap-text-muted);">Question @(currentIndex + 1) of @questions.Count</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px;">
+            <span style="font-size:14px; color:var(--ap-text-muted);">Answered: <strong style="color:var(--ap-primary);">@answers.Count</strong> / @questions.Count</span>
+            <button class="btn btn-primary" @onclick="FinishTest" disabled="@submitting">
+                @(submitting ? "Submitting..." : "Finish Test")
+            </button>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div style="height:6px; background:var(--ap-border); border-radius:3px; margin-bottom:20px; overflow:hidden;">
+        <div style="height:100%; width:@(((currentIndex + 1) * 100) / questions.Count)%; background:linear-gradient(90deg, var(--ap-primary), var(--ap-primary-light)); border-radius:3px; transition:width 0.3s;"></div>
+    </div>
+
+    <!-- Section Badge -->
+    <span class="badge badge-lavender" style="margin-bottom:8px;">@current.SectionTitle</span>
+
+    <!-- Question -->
+    <div class="card" style="padding:32px; margin-bottom:20px;">
+        <div style="font-size:13px; color:var(--ap-text-muted); margin-bottom:8px;">Question @(currentIndex + 1)</div>
+        <h3 style="font-size:18px; font-weight:600; line-height:1.6; margin-bottom:24px;">@current.QuestionText</h3>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            @foreach (var opt in current.Options)
+            {
+                var isSelected = answers.ContainsKey(current.QuestionId) && answers[current.QuestionId] == opt.Id;
+                <button style="display:flex; align-items:center; gap:12px; padding:14px 18px; border-radius:10px;
+                    border:2px solid @(isSelected ? "var(--ap-primary)" : "var(--ap-border)");
+                    background:@(isSelected ? "rgba(27,77,62,0.06)" : "var(--ap-surface)");
+                    cursor:pointer; text-align:left; font-family:var(--ap-font-body); font-size:15px; width:100%;"
+                    @onclick="() => SelectOption(current.QuestionId, opt.Id)">
+                    <div style="width:24px; height:24px; border-radius:50%; border:2px solid @(isSelected ? "var(--ap-primary)" : "var(--ap-border)");
+                        display:flex; align-items:center; justify-content:center; flex-shrink:0;
+                        background:@(isSelected ? "var(--ap-primary)" : "transparent");">
+                        @if (isSelected) { <div style="width:8px; height:8px; border-radius:50%; background:#fff;"></div> }
+                    </div>
+                    <span style="color:@(isSelected ? "var(--ap-primary)" : "var(--ap-text)"); font-weight:@(isSelected ? "600" : "400");">@opt.OptionText</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-outline" @onclick="PrevQuestion" disabled="@(currentIndex == 0)">← Previous</button>
+        <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:420px;">
+            @for (int i = 0; i < questions.Count; i++)
+            {
+                var idx = i;
+                var q = questions[i];
+                var isAnswered = answers.ContainsKey(q.QuestionId);
+                var isCurrent = i == currentIndex;
+                <button style="width:26px; height:26px; border-radius:50%; font-size:10px; font-weight:600; cursor:pointer;
+                    border:2px solid @(isCurrent ? "var(--ap-primary)" : isAnswered ? "var(--ap-green)" : "var(--ap-border)");
+                    background:@(isCurrent ? "var(--ap-primary)" : isAnswered ? "var(--ap-green)" : "transparent");
+                    color:@(isCurrent || isAnswered ? "#fff" : "var(--ap-text-muted)"); font-family:var(--ap-font-body);"
+                    @onclick="() => GoTo(idx)">@(i + 1)</button>
+            }
+        </div>
+        @if (currentIndex < questions.Count - 1)
+        { <button class="btn btn-primary" @onclick="NextQuestion">Next →</button> }
+        else
+        { <button class="btn btn-primary" @onclick="FinishTest" disabled="@submitting">Finish Test</button> }
+    </div>
+}
+
+@code {
+    [Parameter] public long AttemptId { get; set; }
+
+    private string testTitle = "";
+    private List<QItem> questions = new();
+    private Dictionary<long, long> answers = new();
+    private int currentIndex = 0;
+    private bool loading = true, submitted = false, submitting = false;
+    private string errorMsg = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await LoadQuestions(); StateHasChanged(); }
+    }
+
+    private async Task LoadQuestions()
+    {
+        try
+        {
+            // Get attempt info to find the testId
+            var attemptResp = await Api.GetFromJsonAsync<ApiResp<AttemptInfo>>($"api/tests/attempts/{AttemptId}");
+            if (attemptResp?.Data == null) { errorMsg = "Attempt not found."; loading = false; return; }
+            if (attemptResp.Data.Status == "Completed") { Nav.NavigateTo($"/student/results/{AttemptId}"); return; }
+
+            testTitle = attemptResp.Data.TestTitle;
+
+            // Load test with sections to get the question structure
+            var testResp = await Api.GetFromJsonAsync<ApiResp<TestDetail>>($"api/tests/{attemptResp.Data.TestId}");
+            if (testResp?.Data?.Sections == null) { errorMsg = "No test data found."; loading = false; return; }
+
+            // For each section, load questions by section type + category
+            int qNum = 1;
+            foreach (var section in testResp.Data.Sections.OrderBy(s => s.SectionOrder))
+            {
+                string url;
+                if (!string.IsNullOrEmpty(section.InterestCategoryName))
+                    url = $"api/questions?sectionType=Interest&activeOnly=true";
+                else if (!string.IsNullOrEmpty(section.AptitudeCategoryName))
+                    url = $"api/questions?sectionType=Aptitude&activeOnly=true";
+                else
+                    url = $"api/questions?sectionType={section.SectionType}&activeOnly=true";
+
+                var qResp = await Api.GetFromJsonAsync<ApiResp<List<QData>>>(url);
+                if (qResp?.Data != null)
+                {
+                    // Filter to match this section's category
+                    var filtered = qResp.Data;
+                    if (!string.IsNullOrEmpty(section.InterestCategoryName))
+                        filtered = filtered.Where(q => q.InterestCategoryName == section.InterestCategoryName).ToList();
+                    else if (!string.IsNullOrEmpty(section.AptitudeCategoryName))
+                        filtered = filtered.Where(q => q.AptitudeCategoryName == section.AptitudeCategoryName).ToList();
+
+                    foreach (var q in filtered)
+                    {
+                        if (questions.Any(x => x.QuestionId == q.Id)) continue;
+                        questions.Add(new QItem
+                        {
+                            QuestionId = q.Id, QuestionText = q.QuestionText,
+                            SectionTitle = section.Title, QuestionNumber = qNum++,
+                            Options = q.Options?.Select(o => new OItem { Id = o.Id, OptionText = o.OptionText }).ToList() ?? new()
+                        });
+                    }
+                }
+            }
+
+            if (!questions.Any()) errorMsg = "No questions found. Admin needs to import questions and seed test data.";
+        }
+        catch (Exception ex) { errorMsg = $"Error: {ex.Message}"; }
+        loading = false;
+    }
+
+    private void SelectOption(long qId, long optId) { answers[qId] = optId; StateHasChanged(); }
+    private void NextQuestion() { if (currentIndex < questions.Count - 1) currentIndex++; }
+    private void PrevQuestion() { if (currentIndex > 0) currentIndex--; }
+    private void GoTo(int i) => currentIndex = i;
+
+    private async Task FinishTest()
+    {
+        submitting = true; StateHasChanged();
+        try
+        {
+            var body = new { Answers = answers.Select(a => new { QuestionId = a.Key, SelectedOptionId = (long?)a.Value, OpenAnswer = (string?)null, TimeTakenSeconds = (int?)null }).ToList() };
+            var resp = await Api.PostAsJsonAsync($"api/tests/attempts/{AttemptId}/finish", body);
+            submitted = resp.IsSuccessStatusCode;
+            if (!submitted) { var err = await resp.Content.ReadFromJsonAsync<ApiResp<object>>(); errorMsg = err?.Errors?.FirstOrDefault() ?? "Submit failed."; }
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+        submitting = false; StateHasChanged();
+    }
+
+    record QItem { public long QuestionId; public string QuestionText = ""; public string SectionTitle = ""; public int QuestionNumber; public List<OItem> Options = new(); }
+    record OItem { public long Id; public string OptionText = ""; }
+    class ApiResp<T> { public bool Success { get; set; } public T? Data { get; set; } public List<string>? Errors { get; set; } }
+    class AttemptInfo { public long Id { get; set; } public long TestId { get; set; } public string TestTitle { get; set; } = ""; public string Status { get; set; } = ""; }
+    class TestDetail { public long Id { get; set; } public string Title { get; set; } = ""; public List<SectionInfo>? Sections { get; set; } }
+    class SectionInfo { public string Title { get; set; } = ""; public string SectionType { get; set; } = ""; public int SectionOrder { get; set; } public string? InterestCategoryName { get; set; } public string? AptitudeCategoryName { get; set; } }
+    class QData { public long Id { get; set; } public string QuestionText { get; set; } = ""; public string? InterestCategoryName { get; set; } public string? AptitudeCategoryName { get; set; } public List<OData>? Options { get; set; } }
+    class OData { public long Id { get; set; } public string OptionText { get; set; } = ""; }
+}

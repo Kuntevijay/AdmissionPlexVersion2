@@ -32,6 +32,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, long>
     public DbSet<TestSection> TestSections => Set<TestSection>();
     public DbSet<TestSectionQuestion> TestSectionQuestions => Set<TestSectionQuestion>();
     public DbSet<TestAttempt> TestAttempts => Set<TestAttempt>();
+    public DbSet<AssessmentSession> AssessmentSessions => Set<AssessmentSession>();
     public DbSet<TestResponse> TestResponses => Set<TestResponse>();
     public DbSet<InterestScore> InterestScores => Set<InterestScore>();
     public DbSet<AptitudeScore> AptitudeScores => Set<AptitudeScore>();

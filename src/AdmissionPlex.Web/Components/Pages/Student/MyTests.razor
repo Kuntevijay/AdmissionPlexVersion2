@@ -1,6 +1,7 @@
 @page "/student/tests"
 @layout StudentLayout
-@inject HttpClient Http
+@inject ApiClient Api
+@inject NavigationManager Nav
 
 <PageTitle>My Tests - AdmissionPlex</PageTitle>
 
@@ -8,35 +9,76 @@
     <div><h2>My Tests</h2><p class="topbar-subtitle">Take assessments and view your results</p></div>
 </div>
 
-<!-- Available Tests -->
-<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Available Tests</h3>
-<div class="grid-2" style="margin-bottom:32px;">
-    <div class="card" style="border-left:4px solid var(--ap-primary);">
-        <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div>
-                <span class="badge badge-green" style="margin-bottom:8px;">FREE</span>
-                <h4 style="font-size:16px; margin-bottom:4px;">Quick Stream Selector</h4>
-                <p style="font-size:13px; color:var(--ap-text-muted);">15 min · 30 questions · Find your ideal stream</p>
+<!-- Available Tests from API -->
+<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Available Assessments</h3>
+
+@if (availableTests == null)
+{
+    <div class="spinner"></div>
+}
+else if (availableTests.Any())
+{
+    <div style="margin-bottom:32px;">
+        @foreach (var test in availableTests.Where(t => t.IsActive))
+        {
+            <div class="card" style="border-left:4px solid var(--ap-primary); margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <div style="flex:1;">
+                        <span class="badge badge-green" style="margin-bottom:8px;">FREE</span>
+                        <h4 style="font-size:18px; margin-bottom:4px;">@test.Title</h4>
+                        <p style="font-size:13px; color:var(--ap-text-muted); margin-bottom:12px;">
+                            @test.DurationMinutes min · @test.TotalQuestions questions · 17 assessment modules
+                        </p>
+                        @if (!string.IsNullOrEmpty(test.Description))
+                        {
+                            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:12px;">@test.Description</p>
+                        }
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <span class="badge badge-sky">10 Interest modules</span>
+                            <span class="badge badge-coral">7 Aptitude modules</span>
+                            <span class="badge badge-lavender">IQ Benchmark</span>
+                            <span class="badge badge-gold">Career Suitability</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary"
+                            @onclick="() => StartTest(test.Id)"
+                            disabled="@startingTest">
+                        @(startingTestId == test.Id ? "Starting..." : "Start Assessment →")
+                    </button>
+                </div>
             </div>
-            <button class="btn btn-primary btn-sm">Start Test</button>
+        }
+    </div>
+
+    <!-- Career Quiz Promo -->
+    <div class="card" style="border-left:4px solid var(--ap-gold); margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h4 style="font-size:16px; margin-bottom:4px;">Quick Career Quiz</h4>
+                <p style="font-size:13px; color:var(--ap-text-muted);">Not ready for the full assessment? Take a quick 5-minute quiz to find your ideal stream.</p>
+            </div>
+            <a href="/quiz" class="btn btn-outline btn-sm">Take Quiz →</a>
         </div>
     </div>
-    <div class="card" style="border-left:4px solid var(--ap-lavender);">
-        <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div>
-                <span class="badge badge-green" style="margin-bottom:8px;">FREE</span>
-                <h4 style="font-size:16px; margin-bottom:4px;">Full Psychometric Assessment</h4>
-                <p style="font-size:13px; color:var(--ap-text-muted);">45 min · 120 questions · Detailed PDF report · Includes counsellor session</p>
-            </div>
-            <button class="btn btn-lavender btn-sm">Start Test</button>
-        </div>
+}
+else
+{
+    <div class="card" style="padding:40px; text-align:center; color:var(--ap-text-muted); margin-bottom:32px;">
+        <p>No tests available yet. Admin needs to import test data.</p>
     </div>
-</div>
+}
+
+@if (!string.IsNullOrEmpty(errorMsg))
+{
+    <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@errorMsg</div>
+}
 
 <!-- Test History -->
 <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Test History</h3>
 @if (attempts == null)
-{ <div class="spinner"></div> }
+{
+    <div class="spinner"></div>
+}
 else if (attempts.Any())
 {
     <div class="card" style="padding:0; overflow:hidden;">
@@ -52,7 +94,13 @@ else if (attempts.Any())
                         <td>@(a.OverallIqScore?.ToString() ?? "—")</td>
                         <td>
                             @if (a.Status == "Completed")
-                            { <a href="/student/results/@a.Id" class="btn btn-sm btn-outline">View Report</a> }
+                            {
+                                <a href="/student/results/@a.Id" class="btn btn-sm btn-outline">View Report</a>
+                            }
+                            else if (a.Status == "InProgress" || a.Status == "Started")
+                            {
+                                <button class="btn btn-sm btn-primary" @onclick="() => ContinueTest(a.Id)">Continue</button>
+                            }
                         </td>
                     </tr>
                 }
@@ -66,15 +114,92 @@ else
 }
 
 @code {
+    private List<TestInfo>? availableTests;
     private List<TestAttemptDto>? attempts;
+    private bool startingTest = false;
+    private long startingTestId = 0;
+    private string errorMsg = "";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<TestAttemptDto>>>("api/tests/my-attempts");
-            attempts = response?.Data ?? new();
+            var testsResponse = await Api.GetFromJsonAsync<ApiResponse<List<TestInfo>>>("api/tests");
+            availableTests = testsResponse?.Data ?? new();
+        }
+        catch { availableTests = new(); }
+
+        try
+        {
+            var attemptsResponse = await Api.GetFromJsonAsync<ApiResponse<List<TestAttemptDto>>>("api/tests/my-attempts");
+            attempts = attemptsResponse?.Data ?? new();
         }
         catch { attempts = new(); }
+    }
+
+    private async Task StartTest(long testId)
+    {
+        errorMsg = "";
+        startingTest = true;
+        startingTestId = testId;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Api.PostAsJsonAsync($"api/tests/{testId}/start", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<StartResult>>();
+                if (result?.Data != null)
+                {
+                    Nav.NavigateTo($"/student/take-test/{result.Data.AttemptId}");
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                errorMsg = error?.Errors?.FirstOrDefault() ?? "Could not start test. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMsg = $"Error: {ex.Message}";
+        }
+
+        startingTest = false;
+        startingTestId = 0;
+        StateHasChanged();
+    }
+
+    private void ContinueTest(long attemptId)
+    {
+        Nav.NavigateTo($"/student/take-test/{attemptId}");
+    }
+
+    private class TestInfo
+    {
+        public long Id { get; set; }
+        public string Title { get; set; } = "";
+        public string TestType { get; set; } = "";
+        public string? Description { get; set; }
+        public int DurationMinutes { get; set; }
+        public int TotalQuestions { get; set; }
+        public bool IsActive { get; set; }
+        public bool IncludesCounsellorSession { get; set; }
+    }
+
+    private class StartResult
+    {
+        public long AttemptId { get; set; }
+        public Guid AttemptUuid { get; set; }
     }
 }

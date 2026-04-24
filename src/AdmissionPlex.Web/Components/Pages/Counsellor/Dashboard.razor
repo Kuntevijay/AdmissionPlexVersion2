@@ -1,6 +1,6 @@
 @page "/counsellor"
 @layout AdminLayout
-@inject HttpClient Http
+@inject ApiClient Api
 
 <PageTitle>Counsellor Dashboard - AdmissionPlex</PageTitle>
 
@@ -60,7 +60,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/counsellor-sessions/counsellor-sessions");
+            var response = await Api.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/counsellor-sessions/counsellor-sessions");
             sessions = response?.Data ?? new();
         }
         catch { sessions = new(); }

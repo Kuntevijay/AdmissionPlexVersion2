@@ -1,0 +1,141 @@
+@page "/admin/tests"
+@layout AdminLayout
+@inject ApiClient Api
+
+<PageTitle>Test Management - Admin</PageTitle>
+
+<div class="topbar">
+    <div><h2>Test Management</h2><p class="topbar-subtitle">Both tests use questions from the database — import via Question Bank</p></div>
+    <a href="/admin/questions" class="btn btn-primary">📥 Import Questions →</a>
+</div>
+
+<div class="grid-4" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-label">Total tests</div><div class="stat-value">2</div><div style="font-size:12px; color:var(--ap-text-muted);">Quiz + Psychometric</div></div>
+    <div class="stat-card"><div class="stat-label">Quiz questions</div><div class="stat-value">@quizCount</div></div>
+    <div class="stat-card"><div class="stat-label">Interest questions</div><div class="stat-value">@interestCount</div></div>
+    <div class="stat-card"><div class="stat-label">Aptitude questions</div><div class="stat-value">@aptitudeCount</div></div>
+</div>
+
+<!-- Test 1: Career Quiz -->
+<div class="card" style="margin-bottom:24px; border-left:4px solid var(--ap-green); border-radius:0 12px 12px 0;">
+    <div style="display:flex; justify-content:space-between; align-items:start;">
+        <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="font-size:24px;">🎯</span>
+                <h3 style="font-size:18px; font-weight:700; margin:0;">Career Quiz</h3>
+                <span class="badge badge-green">Public</span>
+                <span class="badge @(quizCount > 0 ? "badge-green" : "badge-coral")">@quizCount questions from DB</span>
+            </div>
+            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:8px;">
+                Quick stream finder. Each option is tagged to Science / Commerce / Arts. Shows percentage breakdown + career matches. No login needed.
+            </p>
+        </div>
+        <a href="/quiz" target="_blank" class="btn btn-outline btn-sm">Preview ↗</a>
+    </div>
+    @if (quizCount == 0)
+    {
+        <div style="margin-top:12px; padding:12px 16px; background:rgba(239,68,68,0.06); border-radius:8px; font-size:13px; color:var(--ap-red);">
+            ⚠ No quiz questions imported yet. Import a JSON file with <code>section_type: "quiz"</code> to populate.
+        </div>
+    }
+</div>
+
+<!-- Test 2: Psychometric Assessment -->
+<div class="card" style="margin-bottom:16px; border-left:4px solid var(--ap-lavender); border-radius:0 12px 12px 0;">
+    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:16px;">
+        <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span style="font-size:24px;">🧠</span>
+                <h3 style="font-size:18px; font-weight:700; margin:0;">Psychometric Career Assessment</h3>
+                <span class="badge badge-green">Login required</span>
+            </div>
+            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6;">
+                9 sequential sub-tests. Student completes each one to unlock the next. Full career report generated after all 9.
+            </p>
+        </div>
+    </div>
+
+    @if (subTests.Any())
+    {
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            @foreach (var t in subTests)
+            {
+                <div style="background:var(--ap-bg); border-radius:10px; padding:14px 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-size:18px;">@t.Icon</span>
+                        <span class="badge @CategoryBadge(t.Category)" style="font-size:10px;">@t.Category</span>
+                    </div>
+                    <div style="font-weight:600; font-size:13px; margin-bottom:2px;">@t.Title</div>
+                    <div style="font-size:11px; color:@(t.TotalQuestions > 0 ? "var(--ap-text-muted)" : "var(--ap-red)");">
+                        @t.TotalQuestions questions · @t.DurationMinutes min
+                        @if (t.TotalQuestions == 0) { <span>⚠ import needed</span> }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div style="padding:24px; text-align:center; background:var(--ap-bg); border-radius:10px; color:var(--ap-text-muted);">
+            No sub-tests configured. Seed sample data or import questions.
+        </div>
+    }
+</div>
+
+<!-- Import format guide -->
+<div class="card">
+    <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">JSON import format (same for both tests)</h3>
+    <div class="grid-2" style="gap:16px;">
+        <div>
+            <div style="font-weight:600; font-size:13px; color:var(--ap-sky); margin-bottom:4px;">Aptitude (MCQ)</div>
+            <div style="font-family:monospace; font-size:10px; background:var(--ap-bg); padding:8px; border-radius:6px; white-space:pre; line-height:1.5;">{ "section": "number_calculation",
+  "aptitude_code": "NC",
+  "questions": [{
+    "question_en": "ADD (29 + 21)",
+    "question_mr": "बेरीज करा",
+    "options": {"a":"50","b":"51","c":"49","d":"52"},
+    "correct_answer": "a"
+  }]
+}</div>
+        </div>
+        <div>
+            <div style="font-weight:600; font-size:13px; color:var(--ap-green); margin-bottom:4px;">Quiz (stream-tagged)</div>
+            <div style="font-family:monospace; font-size:10px; background:var(--ap-bg); padding:8px; border-radius:6px; white-space:pre; line-height:1.5;">{ "section": "career_quiz",
+  "section_type": "quiz",
+  "questions": [{
+    "question_en": "You prefer?",
+    "options": {"a":"Lab","b":"Business","c":"Art"},
+    "option_streams": {"a":"Science","b":"Commerce","c":"Arts"}
+  }]
+}</div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<SubTestInfo> subTests = new();
+    private int quizCount, interestCount, aptitudeCount;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<ApiResponse<List<SubTestInfo>>>("api/tests");
+            subTests = (resp?.Data ?? new()).Where(t => t.TestType != "StreamSelector").OrderBy(t => t.DisplayOrder).ToList();
+
+            var qResp = await Api.GetFromJsonAsync<ApiResponse<List<QInfo>>>("api/questions?activeOnly=true");
+            var allQ = qResp?.Data ?? new();
+            quizCount = allQ.Count(q => q.SectionType == "StreamSelector");
+            interestCount = allQ.Count(q => q.SectionType == "Interest");
+            aptitudeCount = allQ.Count(q => q.SectionType == "Aptitude");
+        }
+        catch { }
+        StateHasChanged();
+    }
+
+    string CategoryBadge(string? c) => c switch { "Interest" => "badge-coral", "Aptitude" => "badge-sky", "IQ" => "badge-lavender", _ => "badge-primary" };
+
+    class SubTestInfo { public long Id { get; set; } public string Code { get; set; } = ""; public string Title { get; set; } = ""; public string TestType { get; set; } = ""; public string? Category { get; set; } public string? Icon { get; set; } public int DisplayOrder { get; set; } public int DurationMinutes { get; set; } public int TotalQuestions { get; set; } public bool IsActive { get; set; } }
+    class QInfo { public string SectionType { get; set; } = ""; }
+}

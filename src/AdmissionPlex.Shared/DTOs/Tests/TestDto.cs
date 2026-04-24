@@ -3,10 +3,14 @@ namespace AdmissionPlex.Shared.DTOs.Tests;
 public class TestDto
 {
     public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string TestType { get; set; } = string.Empty;
+    public string? Category { get; set; }
     public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public int DisplayOrder { get; set; }
     public int DurationMinutes { get; set; }
     public int TotalQuestions { get; set; }
     public decimal Price { get; set; }
