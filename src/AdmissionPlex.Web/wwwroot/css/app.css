@@ -108,7 +108,7 @@ a:hover { color: var(--ap-primary-light); }
 
 /* === ADMIN/STUDENT LAYOUT === */
 .admin-layout { display: flex; min-height: 100vh; }
-.sidebar { width: 240px; background: var(--ap-sidebar); position: fixed; top: 0; bottom: 0; left: 0; padding: 24px 0; overflow-y: auto; }
+.sidebar { width: 240px; background: var(--ap-sidebar); position: fixed; top: 0; bottom: 0; left: 0; padding: 24px 0; overflow-y: auto; display: flex; flex-direction: column; }
 .sidebar-brand { padding: 0 24px; margin-bottom: 32px; display: flex; align-items: center; gap: 10px; }
 .sidebar-brand-icon { width: 32px; height: 32px; background: var(--ap-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px; font-family: var(--ap-font-display); }
 .sidebar-brand span { font-family: var(--ap-font-display); font-size: 16px; color: #fff; }

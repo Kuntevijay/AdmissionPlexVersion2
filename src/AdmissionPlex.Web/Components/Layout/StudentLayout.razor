@@ -1,26 +1,68 @@
 @inherits LayoutComponentBase
+@inject TokenStorageService TokenStorage
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div class="admin-layout">
     <aside class="sidebar" style="width:220px;">
         <div class="sidebar-brand">
-            <div class="sidebar-brand-icon">A</div>
-            <span>AdmissionPlex</span>
+            <a href="/" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+                <div class="sidebar-brand-icon">A</div>
+                <span style="color:#fff;">AdmissionPlex</span>
+            </a>
         </div>
         <div style="margin:0 16px 24px; padding:16px; background:rgba(255,255,255,0.05); border-radius:12px; text-align:center;">
-            <div class="avatar" style="width:48px;height:48px;font-size:18px;margin:0 auto 8px;">PS</div>
-            <div style="font-weight:700; font-size:14px; color:#fff;">Student</div>
-            <div style="font-size:11px; color:rgba(255,255,255,0.5);">My Account</div>
+            <div class="avatar" style="width:48px;height:48px;font-size:18px;margin:0 auto 8px;">@initials</div>
+            <div style="font-weight:700; font-size:14px; color:#fff;">@displayName</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.5);">Student</div>
         </div>
         <NavLink class="sidebar-item" href="/student" Match="NavLinkMatch.All"><span class="icon">◫</span> Overview</NavLink>
         <NavLink class="sidebar-item" href="/student/tests"><span class="icon">📝</span> My Tests</NavLink>
-        <NavLink class="sidebar-item" href="/student/results"><span class="icon">📊</span> Results</NavLink>
         <NavLink class="sidebar-item" href="/student/careers"><span class="icon">🎯</span> Career Map</NavLink>
         <NavLink class="sidebar-item" href="/student/chat"><span class="icon">💬</span> Career Chat</NavLink>
         <NavLink class="sidebar-item" href="/student/sessions"><span class="icon">📅</span> Counsellor Sessions</NavLink>
         <NavLink class="sidebar-item" href="/student/referrals"><span class="icon">🔗</span> My Referrals</NavLink>
         <NavLink class="sidebar-item" href="/student/profile"><span class="icon">👤</span> Profile</NavLink>
+
+        <div style="padding:16px 20px; border-top:1px solid rgba(255,255,255,0.1); margin-top:24px;">
+            <button class="sidebar-item" style="width:100%; color:rgba(255,255,255,0.6);" @onclick="SignOut">
+                <span class="icon">🚪</span> Sign Out
+            </button>
+        </div>
     </aside>
     <div class="main-content" style="margin-left:220px;">
         @Body
     </div>
 </div>
+
+@code {
+    private string displayName = "Student";
+    private string initials = "ST";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var name = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_name");
+                if (!string.IsNullOrEmpty(name))
+                {
+                    displayName = name;
+                    var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    initials = parts.Length >= 2
+                        ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
+                        : name[..Math.Min(2, name.Length)].ToUpper();
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await TokenStorage.ClearAllAsync();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+}

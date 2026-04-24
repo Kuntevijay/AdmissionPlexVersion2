@@ -1,16 +1,29 @@
 @inherits LayoutComponentBase
+@inject TokenStorageService TokenStorage
+@inject NavigationManager Nav
 
 <nav class="public-nav">
     <div class="nav-brand">
-        <div class="nav-brand-icon">A</div>
-        <span>AdmissionPlex</span>
+        <a href="/" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+            <div class="nav-brand-icon">A</div>
+            <span>AdmissionPlex</span>
+        </a>
     </div>
     <div class="nav-links">
         <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Home</NavLink>
         <NavLink class="nav-link" href="/careers">Careers</NavLink>
         <NavLink class="nav-link" href="/cutoffs">Cutoffs</NavLink>
         <NavLink class="nav-link" href="/about">About</NavLink>
-        <NavLink class="nav-link btn btn-primary btn-sm" href="/login">Login / Register</NavLink>
+
+        @if (isLoggedIn)
+        {
+            <NavLink class="nav-link" href="@dashboardUrl" style="font-weight:600; color:var(--ap-primary);">My Dashboard</NavLink>
+            <button class="btn btn-outline btn-sm" style="cursor:pointer;" @onclick="SignOut">Sign Out</button>
+        }
+        else
+        {
+            <NavLink class="nav-link btn btn-primary btn-sm" href="/login">Login / Register</NavLink>
+        }
     </div>
 </nav>
 
@@ -47,3 +60,35 @@
         <div class="footer-bottom">© 2026 AdmissionPlex. All rights reserved.</div>
     </div>
 </footer>
+
+@code {
+    private bool isLoggedIn = false;
+    private string dashboardUrl = "/student";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var token = await TokenStorage.GetTokenAsync();
+            isLoggedIn = !string.IsNullOrEmpty(token);
+            if (isLoggedIn)
+            {
+                var role = await TokenStorage.GetUserRoleAsync();
+                dashboardUrl = role switch
+                {
+                    "Admin" => "/admin",
+                    "Counsellor" => "/counsellor",
+                    "Coordinator" => "/coordinator",
+                    _ => "/student"
+                };
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await TokenStorage.ClearAllAsync();
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+}

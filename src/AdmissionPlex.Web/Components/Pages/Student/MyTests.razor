@@ -24,11 +24,11 @@
     <div class="card" style="border-left:4px solid var(--ap-lavender);">
         <div style="display:flex; justify-content:space-between; align-items:start;">
             <div>
-                <span class="badge badge-lavender" style="margin-bottom:8px;">₹499</span>
+                <span class="badge badge-green" style="margin-bottom:8px;">FREE</span>
                 <h4 style="font-size:16px; margin-bottom:4px;">Full Psychometric Assessment</h4>
-                <p style="font-size:13px; color:var(--ap-text-muted);">45 min · 120 questions · Detailed PDF report</p>
+                <p style="font-size:13px; color:var(--ap-text-muted);">45 min · 120 questions · Detailed PDF report · Includes counsellor session</p>
             </div>
-            <button class="btn btn-lavender btn-sm">Purchase & Start</button>
+            <button class="btn btn-lavender btn-sm">Start Test</button>
         </div>
     </div>
 </div>
@@ -41,7 +41,7 @@ else if (attempts.Any())
 {
     <div class="card" style="padding:0; overflow:hidden;">
         <table class="data-table">
-            <thead><tr><th>Test</th><th>Date</th><th>Status</th><th>Score</th><th>Action</th></tr></thead>
+            <thead><tr><th>Test</th><th>Date</th><th>Status</th><th>IQ Score</th><th>Action</th></tr></thead>
             <tbody>
                 @foreach (var a in attempts)
                 {

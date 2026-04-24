@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@inject TokenStorageService TokenStorage
+@inject NavigationManager Nav
 
 <div class="admin-layout">
     <aside class="sidebar">
@@ -18,8 +20,22 @@
         <NavLink class="sidebar-item" href="/admin/referrals"><span class="icon">🔗</span> Referrals</NavLink>
         <NavLink class="sidebar-item" href="/admin/pages"><span class="icon">📄</span> Pages / CMS</NavLink>
         <NavLink class="sidebar-item" href="/admin/settings"><span class="icon">⚙️</span> Settings</NavLink>
+
+        <div style="margin-top:auto; padding:16px 20px; border-top:1px solid rgba(255,255,255,0.1); margin-top:24px;">
+            <button class="sidebar-item" style="width:100%; color:rgba(255,255,255,0.6);" @onclick="SignOut">
+                <span class="icon">🚪</span> Sign Out
+            </button>
+        </div>
     </aside>
     <div class="main-content">
         @Body
     </div>
 </div>
+
+@code {
+    private async Task SignOut()
+    {
+        await TokenStorage.ClearAllAsync();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+}
