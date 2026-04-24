@@ -1,0 +1,89 @@
+@page "/admin"
+@layout AdminLayout
+@inject HttpClient Http
+
+<PageTitle>Admin Dashboard - AdmissionPlex</PageTitle>
+
+<div class="topbar"><div><h2>Dashboard</h2><p class="topbar-subtitle">Welcome back, Admin</p></div><div class="topbar-actions"><div class="avatar">AD</div></div></div>
+
+@if (data == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="grid-4" style="margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value">@data.TotalStudents</div></div>
+        <div class="stat-card"><div class="stat-label">Tests Taken</div><div class="stat-value">@data.TotalTestsTaken</div></div>
+        <div class="stat-card"><div class="stat-label">Active Counsellors</div><div class="stat-value">@data.ActiveCounsellors</div></div>
+        <div class="stat-card"><div class="stat-label">Revenue (INR)</div><div class="stat-value">@data.Revenue.ToString("N0")</div></div>
+    </div>
+
+    <div class="grid-4" style="margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-label">Completed Tests</div><div class="stat-value">@data.CompletedTests</div></div>
+        <div class="stat-card"><div class="stat-label">Questions in Bank</div><div class="stat-value">@data.TotalQuestions</div></div>
+        <div class="stat-card"><div class="stat-label">Published Careers</div><div class="stat-value">@data.TotalCareers</div></div>
+        <div class="stat-card"><div class="stat-label">Completion Rate</div><div class="stat-value">@(data.TotalTestsTaken > 0 ? $"{(data.CompletedTests * 100 / data.TotalTestsTaken)}%" : "0%")</div></div>
+    </div>
+
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="card-header" style="padding:18px 24px;"><h3>Recent Test Submissions</h3></div>
+        @if (data.RecentAttempts?.Any() == true)
+        {
+            <table class="data-table">
+                <thead><tr><th>Student</th><th>Test</th><th>Status</th><th>IQ Score</th><th>Date</th></tr></thead>
+                <tbody>
+                    @foreach (var a in data.RecentAttempts)
+                    {
+                        <tr>
+                            <td style="font-weight:600;">@a.StudentName</td>
+                            <td>@a.TestName</td>
+                            <td><span class="badge @(a.Status == "Completed" ? "badge-green" : "badge-gold")">@a.Status</span></td>
+                            <td>@(a.OverallIqScore?.ToString() ?? "—")</td>
+                            <td style="color:var(--ap-text-muted); font-size:13px;">@a.StartedAt.ToString("dd MMM, hh:mm tt")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div style="padding:40px; text-align:center; color:var(--ap-text-muted);">No test submissions yet.</div>
+        }
+    </div>
+}
+
+@code {
+    private DashboardData? data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<DashboardData>>("api/dashboard/admin");
+            data = response?.Data;
+        }
+        catch { data = new DashboardData(); }
+    }
+
+    private class DashboardData
+    {
+        public int TotalStudents { get; set; }
+        public int TotalTestsTaken { get; set; }
+        public int CompletedTests { get; set; }
+        public int ActiveCounsellors { get; set; }
+        public decimal Revenue { get; set; }
+        public int TotalQuestions { get; set; }
+        public int TotalCareers { get; set; }
+        public List<RecentAttempt>? RecentAttempts { get; set; }
+    }
+
+    private class RecentAttempt
+    {
+        public string StudentName { get; set; } = "";
+        public string TestName { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime StartedAt { get; set; }
+        public int? OverallIqScore { get; set; }
+    }
+}

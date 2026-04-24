@@ -1,0 +1,122 @@
+@page "/register"
+@layout PublicLayout
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject TokenStorageService TokenStorage
+
+<PageTitle>Register - AdmissionPlex</PageTitle>
+
+<section style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:120px 20px 80px;">
+    <div class="card" style="width:100%; max-width:480px; padding:40px;">
+        <div style="text-align:center; margin-bottom:32px;">
+            <div class="nav-brand-icon" style="margin:0 auto 16px; width:48px; height:48px; font-size:20px;">A</div>
+            <h2 style="font-family:var(--ap-font-display); font-size:24px;">Create Your Account</h2>
+            <p style="color:var(--ap-text-muted); font-size:14px;">Start your career discovery journey</p>
+        </div>
+
+        @if (errors.Any())
+        {
+            <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">
+                @foreach (var e in errors) { <div>@e</div> }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div style="background:rgba(34,197,94,0.1); color:var(--ap-green); padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@successMsg</div>
+        }
+
+        <div class="grid-2">
+            <div class="form-group"><label class="form-label">First Name</label><input class="form-input" @bind="firstName" /></div>
+            <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" @bind="lastName" /></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" @bind="email" /></div>
+        <div class="form-group"><label class="form-label">Phone (Optional)</label><input class="form-input" type="tel" placeholder="9876543210" @bind="phone" /></div>
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" @bind="password" /></div>
+        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" @bind="confirmPassword" /></div>
+        <div class="form-group"><label class="form-label">Referral Code (Optional)</label><input class="form-input" placeholder="e.g. PRIYA2026" @bind="referralCode" /></div>
+
+        <button class="btn btn-primary" style="width:100%; justify-content:center; padding:14px; font-size:15px; margin-top:8px;"
+                @onclick="HandleRegister" disabled="@loading">
+            @(loading ? "Creating account..." : "Create Account")
+        </button>
+
+        <p style="text-align:center; margin-top:20px; font-size:14px; color:var(--ap-text-muted);">
+            Already have an account? <a href="/login" style="font-weight:600;">Login</a>
+        </p>
+    </div>
+</section>
+
+@code {
+    private string firstName = "", lastName = "", email = "", phone = "", password = "", confirmPassword = "", referralCode = "";
+    private List<string> errors = new();
+    private string successMsg = "";
+    private bool loading = false;
+
+    private async Task HandleRegister()
+    {
+        errors.Clear();
+        successMsg = "";
+
+        if (string.IsNullOrWhiteSpace(firstName)) errors.Add("First name is required.");
+        if (string.IsNullOrWhiteSpace(email)) errors.Add("Email is required.");
+        if (string.IsNullOrWhiteSpace(password)) errors.Add("Password is required.");
+        if (password != confirmPassword) errors.Add("Passwords do not match.");
+
+        if (errors.Any()) return;
+
+        loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/register", new
+            {
+                firstName, lastName, email, phone, password, confirmPassword,
+                referralCode = string.IsNullOrWhiteSpace(referralCode) ? null : referralCode
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<RegisterApiResponse>();
+                if (result?.Data != null)
+                {
+                    await TokenStorage.SetTokenAsync(result.Data.Token);
+                    await TokenStorage.SetUserInfoAsync(result.Data.Role, result.Data.FullName, result.Data.Email);
+                    Nav.NavigateTo("/student", forceLoad: true);
+                }
+            }
+            else
+            {
+                var errorResult = await response.Content.ReadFromJsonAsync<RegisterApiResponse>();
+                errors = errorResult?.Errors ?? new() { "Registration failed. Please try again." };
+            }
+        }
+        catch (HttpRequestException)
+        {
+            errors.Add("Cannot connect to the server. Make sure the API is running.");
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Error: {ex.Message}");
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+
+    private class RegisterApiResponse
+    {
+        public bool Success { get; set; }
+        public RegisterData? Data { get; set; }
+        public List<string>? Errors { get; set; }
+    }
+
+    private class RegisterData
+    {
+        public string Token { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string FullName { get; set; } = "";
+    }
+}

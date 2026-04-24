@@ -1,0 +1,43 @@
+@page "/coordinator"
+@layout AdminLayout
+
+<PageTitle>Coordinator Dashboard - AdmissionPlex</PageTitle>
+
+<div class="topbar"><div><h2>Coordinator Dashboard</h2><p class="topbar-subtitle">Manage your schools and referrals</p></div></div>
+
+<div class="grid-4" style="margin-bottom:28px;">
+    <div class="stat-card"><div class="stat-label">My Schools</div><div class="stat-value">5</div></div>
+    <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value">342</div></div>
+    <div class="stat-card"><div class="stat-label">Tests Taken</div><div class="stat-value">218</div></div>
+    <div class="stat-card"><div class="stat-label">Commission Earned</div><div class="stat-value">₹21.8K</div><div class="stat-change positive">+15%</div></div>
+</div>
+
+<div class="grid-2">
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="card-header" style="padding:18px 24px;"><h3>My Schools</h3><button class="btn btn-sm btn-primary">+ Add School</button></div>
+        @foreach (var school in new[] { ("DAV Public School", "Pune", 84), ("Ryan International", "Mumbai", 67), ("St. Xavier's", "Pune", 52) })
+        {
+            <div style="padding:16px 24px; border-bottom:1px solid var(--ap-border); display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-weight:600;">@school.Item1</div>
+                    <div style="font-size:12px; color:var(--ap-text-muted);">@school.Item2</div>
+                </div>
+                <div style="font-weight:700; color:var(--ap-primary);">@school.Item3 students</div>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">Referral Code</h3>
+        <div style="background:var(--ap-gold-light); border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
+            <div style="font-size:11px; color:var(--ap-text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Your Coordinator Code</div>
+            <div style="font-family:var(--ap-font-display); font-size:28px; letter-spacing:4px;">COORD2026</div>
+        </div>
+        <div style="display:flex; justify-content:space-around; text-align:center; margin-bottom:16px;">
+            <div><div style="font-weight:700; font-size:20px; color:var(--ap-primary);">142</div><div style="font-size:11px; color:var(--ap-text-muted);">Referrals</div></div>
+            <div><div style="font-weight:700; font-size:20px; color:var(--ap-green);">98</div><div style="font-size:11px; color:var(--ap-text-muted);">Converted</div></div>
+            <div><div style="font-weight:700; font-size:20px; color:var(--ap-gold);">₹9.8K</div><div style="font-size:11px; color:var(--ap-text-muted);">Earned</div></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;">Share Referral Link</button>
+    </div>
+</div>

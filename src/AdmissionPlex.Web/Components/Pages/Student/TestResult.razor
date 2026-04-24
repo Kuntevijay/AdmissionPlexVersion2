@@ -1,0 +1,115 @@
+@page "/student/results/{AttemptId:long}"
+@layout StudentLayout
+@inject HttpClient Http
+
+<PageTitle>Test Results - AdmissionPlex</PageTitle>
+
+<div class="topbar"><h2>Test Results</h2></div>
+
+@if (report == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <!-- Section 1: Summary -->
+    <div class="welcome-banner" style="margin-bottom:24px;">
+        <h2>Report for @report.StudentName</h2>
+        <p>@report.StudentClass · @report.SchoolName · Test Date: @report.TestDate.ToString("dd MMM yyyy")</p>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-label">Overall IQ</div><div class="stat-value">@report.OverallIqScore</div><div style="font-size:12px; font-weight:600; color:var(--ap-primary);">@report.IqCategory</div></div>
+        <div class="stat-card"><div class="stat-label">Top Interest</div><div class="stat-value" style="font-size:22px;">@(report.Top3Interests.FirstOrDefault()?.CategoryName ?? "—")</div></div>
+        <div class="stat-card"><div class="stat-label">Top Aptitude</div><div class="stat-value" style="font-size:22px;">@(report.Top3Aptitudes.FirstOrDefault()?.CategoryName ?? "—")</div></div>
+    </div>
+
+    <!-- Section 2: Interest Profile -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Interest Profile</h3>
+        @foreach (var score in report.AllInterestScores)
+        {
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <span style="width:160px; font-size:13px; font-weight:600;">@score.CategoryName</span>
+                <div style="flex:1; height:24px; background:var(--ap-border); border-radius:12px; overflow:hidden;">
+                    <div style="height:100%; width:@(score.PercentileScore)%; background:linear-gradient(90deg, var(--ap-primary), var(--ap-primary-light)); border-radius:12px; transition:width 0.5s;"></div>
+                </div>
+                <span style="width:50px; text-align:right; font-weight:700; font-size:14px; color:var(--ap-primary);">@score.PercentileScore%</span>
+            </div>
+        }
+    </div>
+
+    <!-- Section 3: Aptitude Profile -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Aptitude Profile</h3>
+        @foreach (var score in report.AllAptitudeScores)
+        {
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <span style="width:160px; font-size:13px; font-weight:600;">@score.CategoryName</span>
+                <div style="flex:1; height:24px; background:var(--ap-border); border-radius:12px; overflow:hidden;">
+                    <div style="height:100%; width:@(score.PercentileScore)%; background:linear-gradient(90deg, var(--ap-sky), var(--ap-lavender)); border-radius:12px; transition:width 0.5s;"></div>
+                </div>
+                <span style="width:50px; text-align:right; font-weight:700; font-size:14px; color:var(--ap-sky);">@score.PercentileScore%</span>
+            </div>
+        }
+    </div>
+
+    <!-- Section 5: Career Suitability -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Career Suitability</h3>
+        @foreach (var career in report.AllCareerSuitability.Take(15))
+        {
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                <span style="width:200px; font-size:13px; font-weight:600;">@career.CareerTitle</span>
+                <div style="flex:1; height:20px; background:var(--ap-border); border-radius:10px; overflow:hidden;">
+                    <div style="height:100%; width:@(career.SuitabilityPct)%; background:@(career.IsRecommended ? "var(--ap-green)" : career.IsCanBeConsidered ? "var(--ap-gold)" : "var(--ap-border)"); border-radius:10px;"></div>
+                </div>
+                <span style="width:50px; text-align:right; font-weight:700; font-size:13px;">@career.SuitabilityPct%</span>
+                @if (career.IsRecommended) { <span class="badge badge-green" style="font-size:10px;">Recommended</span> }
+                else if (career.IsCanBeConsidered) { <span class="badge badge-gold" style="font-size:10px;">Consider</span> }
+            </div>
+        }
+    </div>
+
+    <!-- Section 6: Recommended Careers -->
+    @if (report.RecommendedCareers.Any())
+    {
+        <div class="card" style="margin-bottom:24px;">
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">Recommended Careers</h3>
+            <div class="grid-2">
+                @foreach (var career in report.RecommendedCareers)
+                {
+                    <div style="border:1px solid var(--ap-border); border-radius:12px; padding:20px; border-left:4px solid var(--ap-green);">
+                        <div style="font-weight:700; font-size:16px; margin-bottom:4px;">@career.CareerTitle</div>
+                        <span class="badge badge-primary" style="margin-bottom:8px;">@career.StreamName</span>
+                        <div style="font-size:13px; color:var(--ap-text-muted); margin-top:8px;">@career.EducationPath</div>
+                        @if (!string.IsNullOrEmpty(career.EducationCostRange))
+                        { <div style="font-size:12px; color:var(--ap-text-muted); margin-top:4px;">Cost: @career.EducationCostRange</div> }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(report.PdfReportUrl))
+    {
+        <div style="text-align:center; margin-top:24px;">
+            <a href="@report.PdfReportUrl" target="_blank" class="btn btn-primary" style="padding:16px 40px; font-size:16px;">Download Full PDF Report</a>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public long AttemptId { get; set; }
+    private PsychometricReportDto? report;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<PsychometricReportDto>>($"api/tests/attempts/{AttemptId}/report");
+            report = response?.Data;
+        }
+        catch { }
+    }
+}

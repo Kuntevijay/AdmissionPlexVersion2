@@ -1,0 +1,80 @@
+@page "/student/tests"
+@layout StudentLayout
+@inject HttpClient Http
+
+<PageTitle>My Tests - AdmissionPlex</PageTitle>
+
+<div class="topbar">
+    <div><h2>My Tests</h2><p class="topbar-subtitle">Take assessments and view your results</p></div>
+</div>
+
+<!-- Available Tests -->
+<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Available Tests</h3>
+<div class="grid-2" style="margin-bottom:32px;">
+    <div class="card" style="border-left:4px solid var(--ap-primary);">
+        <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+                <span class="badge badge-green" style="margin-bottom:8px;">FREE</span>
+                <h4 style="font-size:16px; margin-bottom:4px;">Quick Stream Selector</h4>
+                <p style="font-size:13px; color:var(--ap-text-muted);">15 min · 30 questions · Find your ideal stream</p>
+            </div>
+            <button class="btn btn-primary btn-sm">Start Test</button>
+        </div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--ap-lavender);">
+        <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+                <span class="badge badge-lavender" style="margin-bottom:8px;">₹499</span>
+                <h4 style="font-size:16px; margin-bottom:4px;">Full Psychometric Assessment</h4>
+                <p style="font-size:13px; color:var(--ap-text-muted);">45 min · 120 questions · Detailed PDF report</p>
+            </div>
+            <button class="btn btn-lavender btn-sm">Purchase & Start</button>
+        </div>
+    </div>
+</div>
+
+<!-- Test History -->
+<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Test History</h3>
+@if (attempts == null)
+{ <div class="spinner"></div> }
+else if (attempts.Any())
+{
+    <div class="card" style="padding:0; overflow:hidden;">
+        <table class="data-table">
+            <thead><tr><th>Test</th><th>Date</th><th>Status</th><th>Score</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach (var a in attempts)
+                {
+                    <tr>
+                        <td style="font-weight:600;">@a.TestTitle</td>
+                        <td>@a.StartedAt.ToString("dd MMM yyyy")</td>
+                        <td><span class="badge @(a.Status == "Completed" ? "badge-green" : "badge-gold")">@a.Status</span></td>
+                        <td>@(a.OverallIqScore?.ToString() ?? "—")</td>
+                        <td>
+                            @if (a.Status == "Completed")
+                            { <a href="/student/results/@a.Id" class="btn btn-sm btn-outline">View Report</a> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="card" style="padding:40px; text-align:center; color:var(--ap-text-muted);">No tests taken yet. Choose a test above to get started!</div>
+}
+
+@code {
+    private List<TestAttemptDto>? attempts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<TestAttemptDto>>>("api/tests/my-attempts");
+            attempts = response?.Data ?? new();
+        }
+        catch { attempts = new(); }
+    }
+}

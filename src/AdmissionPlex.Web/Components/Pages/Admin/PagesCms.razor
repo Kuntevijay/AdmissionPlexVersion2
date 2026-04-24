@@ -1,0 +1,101 @@
+@page "/admin/pages"
+@layout AdminLayout
+@inject HttpClient Http
+
+<PageTitle>Pages / CMS - Admin</PageTitle>
+
+<div class="topbar">
+    <div><h2>Pages / CMS</h2><p class="topbar-subtitle">Manage static pages, blog posts, and FAQs</p></div>
+    <button class="btn btn-primary" @onclick="() => showEditor = true">+ New Page</button>
+</div>
+
+@if (showEditor)
+{
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">@(editingPage != null ? "Edit Page" : "Create New Page")</h3>
+        <div class="grid-2">
+            <div class="form-group"><label class="form-label">Title</label><input class="form-input" @bind="pageTitle" /></div>
+            <div class="form-group"><label class="form-label">Slug</label><input class="form-input" @bind="pageSlug" placeholder="auto-generated" /></div>
+        </div>
+        <div class="form-group"><label class="form-label">Content (HTML/Markdown)</label><textarea class="form-textarea" style="min-height:200px;" @bind="pageContent"></textarea></div>
+        <div class="grid-3">
+            <div class="form-group"><label class="form-label">Page Type</label>
+                <select class="form-select" @bind="pageType"><option>Static</option><option>Blog</option><option>Landing</option></select>
+            </div>
+            <div class="form-group"><label class="form-label">Meta Title</label><input class="form-input" @bind="metaTitle" /></div>
+            <div class="form-group"><label class="form-label">Meta Description</label><input class="form-input" @bind="metaDesc" /></div>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:8px;">
+            <button class="btn btn-primary" @onclick="SavePage">Publish</button>
+            <button class="btn btn-outline" @onclick="SaveDraft">Save Draft</button>
+            <button class="btn btn-outline" @onclick="() => showEditor = false">Cancel</button>
+        </div>
+    </div>
+}
+
+<div class="card" style="padding:0; overflow:hidden;">
+    @if (pages == null)
+    { <div class="spinner"></div> }
+    else if (pages.Any())
+    {
+        <table class="data-table">
+            <thead><tr><th>Title</th><th>Slug</th><th>Type</th><th>Published</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var p in pages)
+                {
+                    <tr>
+                        <td style="font-weight:600;">@p.Title</td>
+                        <td style="font-size:13px; color:var(--ap-text-muted);">/@p.Slug</td>
+                        <td><span class="badge badge-sky">@p.PageType</span></td>
+                        <td style="font-size:13px;">@p.PublishedAt?.ToString("dd MMM yyyy")</td>
+                        <td><button class="btn btn-sm btn-outline">Edit</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div style="padding:60px; text-align:center; color:var(--ap-text-muted);">No pages yet. Click "+ New Page" to create one.</div>
+    }
+</div>
+
+@code {
+    private List<PageItem>? pages;
+    private bool showEditor = false;
+    private object? editingPage = null;
+    private string pageTitle = "", pageSlug = "", pageContent = "", pageType = "Static", metaTitle = "", metaDesc = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<PageItem>>>("api/pages");
+            pages = response?.Data ?? new();
+        }
+        catch { pages = new(); }
+    }
+
+    private async Task SavePage() => await CreatePage(true);
+    private async Task SaveDraft() => await CreatePage(false);
+
+    private async Task CreatePage(bool publish)
+    {
+        await Http.PostAsJsonAsync("api/pages", new
+        {
+            title = pageTitle, slug = string.IsNullOrWhiteSpace(pageSlug) ? null : pageSlug,
+            content = pageContent, pageType, metaTitle, metaDescription = metaDesc, isPublished = publish
+        });
+        showEditor = false;
+        await OnInitializedAsync();
+    }
+
+    private class PageItem
+    {
+        public long Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public string PageType { get; set; } = "";
+        public DateTime? PublishedAt { get; set; }
+    }
+}

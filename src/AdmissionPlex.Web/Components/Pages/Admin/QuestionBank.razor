@@ -1,0 +1,67 @@
+@page "/admin/questions"
+@layout AdminLayout
+@inject HttpClient Http
+
+<PageTitle>Question Bank - Admin</PageTitle>
+
+<div class="topbar">
+    <div><h2>Question Bank</h2><p class="topbar-subtitle">Manage questions for Stream Selector and Psychometric tests</p></div>
+    <div class="topbar-actions"><a href="/admin/questions/create" class="btn btn-primary">+ Add Question</a></div>
+</div>
+
+<!-- Filters -->
+<div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+    <button class="btn btn-sm @(filter=="All"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("All")'>All</button>
+    <button class="btn btn-sm @(filter=="StreamSelector"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("StreamSelector")'>Stream Selector</button>
+    <button class="btn btn-sm @(filter=="Interest"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Interest")'>Interest</button>
+    <button class="btn btn-sm @(filter=="Aptitude"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Aptitude")'>Aptitude</button>
+</div>
+
+<div class="card" style="overflow:hidden; padding:0;">
+    @if (questions == null)
+    {
+        <div class="spinner"></div>
+    }
+    else
+    {
+        @foreach (var q in questions)
+        {
+            <div style="display:flex; align-items:center; padding:16px 24px; border-bottom:1px solid var(--ap-border); gap:16px;">
+                <div style="flex:1;">
+                    <div style="font-weight:600; font-size:14px;">@q.QuestionText</div>
+                    <div style="display:flex; gap:8px; margin-top:6px;">
+                        <span class="badge badge-lavender">@q.SectionType</span>
+                        <span class="badge badge-sky">@(q.InterestCategoryName ?? q.AptitudeCategoryName ?? "")</span>
+                        <span class="badge badge-gold">@q.QuestionType</span>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline">Edit</button>
+                <button class="btn btn-sm btn-danger">Delete</button>
+            </div>
+        }
+        @if (!questions.Any())
+        {
+            <div style="padding:60px; text-align:center; color:var(--ap-text-muted);">No questions found. Click "+ Add Question" to create one.</div>
+        }
+    }
+</div>
+
+@code {
+    private List<QuestionDto>? questions;
+    private string filter = "All";
+
+    protected override async Task OnInitializedAsync() => await LoadQuestions();
+
+    private async Task SetFilter(string f) { filter = f; await LoadQuestions(); }
+
+    private async Task LoadQuestions()
+    {
+        try
+        {
+            var url = filter == "All" ? "api/questions" : $"api/questions?sectionType={filter}";
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<QuestionDto>>>(url);
+            questions = response?.Data ?? new();
+        }
+        catch { questions = new(); }
+    }
+}

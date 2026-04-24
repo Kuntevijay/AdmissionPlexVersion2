@@ -1,0 +1,42 @@
+@page "/student/profile"
+@layout StudentLayout
+
+<PageTitle>My Profile - AdmissionPlex</PageTitle>
+
+<div class="topbar"><h2>Profile</h2></div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:20px;">Personal Information</h3>
+        <div class="form-group"><label class="form-label">First Name</label><input class="form-input" value="Student" /></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" value="User" /></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" value="student@example.com" disabled /></div>
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-input" type="tel" placeholder="Enter phone number" /></div>
+        <div class="grid-2">
+            <div class="form-group"><label class="form-label">Class</label><select class="form-select"><option>10th</option><option>11th</option><option selected>12th</option></select></div>
+            <div class="form-group"><label class="form-label">Board</label><select class="form-select"><option>CBSE</option><option>ICSE</option><option selected>State</option><option>IB</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">School Name</label><input class="form-input" placeholder="Enter school name" /></div>
+        <div class="grid-2">
+            <div class="form-group"><label class="form-label">City</label><input class="form-input" placeholder="Pune" /></div>
+            <div class="form-group"><label class="form-label">State</label><input class="form-input" placeholder="Maharashtra" /></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:8px;">Save Changes</button>
+    </div>
+
+    <div>
+        <div class="card" style="margin-bottom:20px;">
+            <h3 style="font-size:16px; font-weight:700; margin-bottom:20px;">Change Password</h3>
+            <div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" /></div>
+            <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" /></div>
+            <div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" /></div>
+            <button class="btn btn-outline">Update Password</button>
+        </div>
+        <div class="card">
+            <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">Parent / Guardian</h3>
+            <div class="form-group"><label class="form-label">Parent Phone</label><input class="form-input" type="tel" /></div>
+            <div class="form-group"><label class="form-label">Parent Email</label><input class="form-input" type="email" /></div>
+            <button class="btn btn-outline">Save</button>
+        </div>
+    </div>
+</div>

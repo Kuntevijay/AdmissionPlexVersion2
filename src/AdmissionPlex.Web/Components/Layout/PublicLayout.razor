@@ -1,0 +1,49 @@
+@inherits LayoutComponentBase
+
+<nav class="public-nav">
+    <div class="nav-brand">
+        <div class="nav-brand-icon">A</div>
+        <span>AdmissionPlex</span>
+    </div>
+    <div class="nav-links">
+        <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Home</NavLink>
+        <NavLink class="nav-link" href="/careers">Careers</NavLink>
+        <NavLink class="nav-link" href="/cutoffs">Cutoffs</NavLink>
+        <NavLink class="nav-link" href="/about">About</NavLink>
+        <NavLink class="nav-link btn btn-primary btn-sm" href="/login">Login / Register</NavLink>
+    </div>
+</nav>
+
+<main style="padding-top: 70px;">
+    @Body
+</main>
+
+<footer class="footer">
+    <div style="max-width:1200px; margin:0 auto;">
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; margin-bottom:40px;">
+            <div>
+                <div class="footer-brand">AdmissionPlex</div>
+                <p style="font-size:13px; line-height:1.7; max-width:280px;">India's comprehensive admission and career guidance platform for students, parents, and educators.</p>
+            </div>
+            <div>
+                <div class="footer-col-title">Tests</div>
+                <div class="footer-link">Stream Selector</div>
+                <div class="footer-link">Psychometric Test</div>
+                <div class="footer-link">Sample Questions</div>
+            </div>
+            <div>
+                <div class="footer-col-title">Resources</div>
+                <div class="footer-link"><a href="/careers">Career Library</a></div>
+                <div class="footer-link"><a href="/cutoffs">Cutoff Data</a></div>
+                <div class="footer-link">Blog</div>
+            </div>
+            <div>
+                <div class="footer-col-title">Company</div>
+                <div class="footer-link"><a href="/about">About Us</a></div>
+                <div class="footer-link">Contact</div>
+                <div class="footer-link">Privacy</div>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 AdmissionPlex. All rights reserved.</div>
+    </div>
+</footer>

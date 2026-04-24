@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+
+<div class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">A</div>
+            <span>AdmissionPlex</span>
+        </div>
+        <div class="sidebar-section">Admin Panel</div>
+        <NavLink class="sidebar-item" href="/admin" Match="NavLinkMatch.All"><span class="icon">◫</span> Dashboard</NavLink>
+        <NavLink class="sidebar-item" href="/admin/questions"><span class="icon">❓</span> Question Bank</NavLink>
+        <NavLink class="sidebar-item" href="/admin/tests"><span class="icon">📊</span> Tests</NavLink>
+        <NavLink class="sidebar-item" href="/admin/careers"><span class="icon">🎯</span> Career Info</NavLink>
+        <NavLink class="sidebar-item" href="/admin/cutoffs"><span class="icon">✂️</span> Cutoff Data</NavLink>
+        <NavLink class="sidebar-item" href="/admin/users"><span class="icon">👥</span> Users</NavLink>
+        <NavLink class="sidebar-item" href="/admin/coordinators"><span class="icon">🤝</span> Coordinators</NavLink>
+        <NavLink class="sidebar-item" href="/admin/counsellors"><span class="icon">💬</span> Counsellors</NavLink>
+        <NavLink class="sidebar-item" href="/admin/referrals"><span class="icon">🔗</span> Referrals</NavLink>
+        <NavLink class="sidebar-item" href="/admin/pages"><span class="icon">📄</span> Pages / CMS</NavLink>
+        <NavLink class="sidebar-item" href="/admin/settings"><span class="icon">⚙️</span> Settings</NavLink>
+    </aside>
+    <div class="main-content">
+        @Body
+    </div>
+</div>

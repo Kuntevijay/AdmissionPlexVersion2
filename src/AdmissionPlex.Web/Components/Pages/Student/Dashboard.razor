@@ -1,0 +1,95 @@
+@page "/student"
+@layout StudentLayout
+@inject HttpClient Http
+
+<PageTitle>My Dashboard - AdmissionPlex</PageTitle>
+
+<div class="topbar"><h2>My Dashboard</h2></div>
+
+<div class="welcome-banner">
+    <h2>Welcome back!</h2>
+    <p>You have pending tests and career exploration awaiting. Start your journey today.</p>
+</div>
+
+<div class="grid-4" style="margin-bottom:28px;">
+    <a href="/student/tests" style="text-decoration:none; color:inherit;">
+        <div class="card" style="text-align:center; cursor:pointer;">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(139,92,246,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 12px;">🧠</div>
+            <div style="font-weight:700; font-size:13px;">Take Psychometric Test</div>
+            <div style="font-size:11px; color:var(--ap-text-muted);">45 min full assessment</div>
+        </div>
+    </a>
+    <a href="/student/chat" style="text-decoration:none; color:inherit;">
+        <div class="card" style="text-align:center; cursor:pointer;">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(74,144,217,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 12px;">💬</div>
+            <div style="font-weight:700; font-size:13px;">Career Chat</div>
+            <div style="font-size:11px; color:var(--ap-text-muted);">Ask AI about careers</div>
+        </div>
+    </a>
+    <a href="/cutoffs" style="text-decoration:none; color:inherit;">
+        <div class="card" style="text-align:center; cursor:pointer;">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(232,99,74,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 12px;">📊</div>
+            <div style="font-weight:700; font-size:13px;">View Cutoffs</div>
+            <div style="font-size:11px; color:var(--ap-text-muted);">Engineering cutoffs</div>
+        </div>
+    </a>
+    <a href="/student/sessions" style="text-decoration:none; color:inherit;">
+        <div class="card" style="text-align:center; cursor:pointer;">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 12px;">📅</div>
+            <div style="font-weight:700; font-size:13px;">Book Counsellor</div>
+            <div style="font-size:11px; color:var(--ap-text-muted);">1-on-1 guidance session</div>
+        </div>
+    </a>
+</div>
+
+<div class="grid-2">
+    <!-- Test History -->
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="card-header" style="padding:18px 24px;"><h3>Test History</h3></div>
+        @if (attempts == null)
+        { <div class="spinner"></div> }
+        else if (attempts.Any())
+        {
+            @foreach (var a in attempts)
+            {
+                <div style="padding:16px 24px; border-bottom:1px solid var(--ap-border); display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:600; font-size:14px;">@a.TestTitle</div>
+                        <div style="font-size:12px; color:var(--ap-text-muted);">@a.StartedAt.ToString("dd MMM yyyy")</div>
+                    </div>
+                    <span class="badge @(a.Status == "Completed" ? "badge-green" : "badge-gold")">@a.Status</span>
+                </div>
+            }
+        }
+        else
+        {
+            <div style="padding:40px; text-align:center; color:var(--ap-text-muted);">No tests taken yet. <a href="/student/tests">Take your first test!</a></div>
+        }
+    </div>
+
+    <!-- Referral Card -->
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="card-header" style="padding:18px 24px;"><h3>My Referrals</h3></div>
+        <div style="padding:24px;">
+            <div style="background:var(--ap-gold-light); border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
+                <div style="font-size:11px; color:var(--ap-text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Your Referral Code</div>
+                <div style="font-family:var(--ap-font-display); font-size:28px; letter-spacing:4px;">SHARE2026</div>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center;">Share Referral Link</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<TestAttemptDto>? attempts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<TestAttemptDto>>>("api/tests/my-attempts");
+            attempts = response?.Data ?? new();
+        }
+        catch { attempts = new(); }
+    }
+}

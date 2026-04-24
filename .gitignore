@@ -1,0 +1,36 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+.vscode/
+*.DotSettings.user
+
+## IDE
+.idea/
+*.swp
+*.swo
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Secrets
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+## Build
+publish/
+out/
+artifacts/
+
+## EF Migrations (keep tracked but ignore auto-generated)
+# src/AdmissionPlex.Api/Data/Migrations/
+
+## Misc
+*.log
+*.pdf
+wwwroot/uploads/

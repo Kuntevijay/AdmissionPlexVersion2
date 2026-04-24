@@ -1,0 +1,81 @@
+@page "/"
+@layout PublicLayout
+
+<PageTitle>AdmissionPlex - Your Career, Decoded & Designed</PageTitle>
+
+<!-- HERO -->
+<section class="hero">
+    <div style="max-width:1200px; margin:0 auto; width:100%;">
+        <div class="grid-2" style="align-items:center; gap:80px;">
+            <div>
+                <div style="display:inline-flex; align-items:center; gap:8px; background:var(--ap-gold-light); padding:6px 16px; border-radius:20px; margin-bottom:24px;">
+                    <span style="font-size:12px;">🎓</span>
+                    <span style="font-size:12px; font-weight:600; color:var(--ap-primary); letter-spacing:1px; text-transform:uppercase;">India's #1 Admission Platform</span>
+                </div>
+                <h1>Your Career,<br/><span class="accent">Decoded</span> & <span class="gold-gradient">Designed</span></h1>
+                <p class="hero-subtitle">Take psychometric tests, explore career paths, check engineering cutoffs — all in one place. Get personalized guidance from expert counsellors.</p>
+                <div style="display:flex; gap:16px;">
+                    <a href="/student/tests" class="btn btn-primary" style="padding:16px 32px; font-size:15px;">Take Free Stream Test →</a>
+                    <a href="/careers" class="btn btn-outline" style="padding:16px 32px; font-size:15px;">Explore Careers</a>
+                </div>
+                <div class="hero-stats">
+                    <div><div class="hero-stat-value">50K+</div><div class="hero-stat-label">Students Guided</div></div>
+                    <div><div class="hero-stat-value">200+</div><div class="hero-stat-label">Career Paths</div></div>
+                    <div><div class="hero-stat-value">98%</div><div class="hero-stat-label">Satisfaction</div></div>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div class="card" style="transform:rotate(-2deg);"><span style="font-size:22px;">🧠</span> <strong>Psychometric Test</strong><br/><small style="color:var(--ap-text-muted);">Discover your aptitude, interests & personality</small></div>
+                <div class="card" style="transform:rotate(1deg);"><span style="font-size:22px;">📊</span> <strong>Stream Selector</strong><br/><small style="color:var(--ap-text-muted);">Science, Commerce or Arts — find your fit</small></div>
+                <div class="card" style="transform:rotate(-1deg);"><span style="font-size:22px;">🎯</span> <strong>Engineering Cutoffs</strong><br/><small style="color:var(--ap-text-muted);">MHT-CET, JEE cutoff analysis & predictor</small></div>
+                <div class="card" style="transform:rotate(2deg);"><span style="font-size:22px;">💬</span> <strong>AI Career Chat</strong><br/><small style="color:var(--ap-text-muted);">Chat with our AI for instant career guidance</small></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TESTS SECTION -->
+<section style="padding:80px 60px; background:var(--ap-surface);">
+    <div style="max-width:1200px; margin:0 auto;">
+        <div class="section-header">
+            <div class="section-tag" style="color:var(--ap-gold);">Assessments</div>
+            <h2 class="section-title">Find Your Perfect Path</h2>
+            <p class="section-subtitle">Take scientifically designed tests to understand your strengths</p>
+        </div>
+        <div class="grid-2" style="gap:32px;">
+            <div style="background:linear-gradient(135deg, var(--ap-primary), #0D3B2E); border-radius:20px; padding:40px; color:#fff;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; opacity:0.7;">FREE</span>
+                <h3 style="font-family:var(--ap-font-display); font-size:28px; margin:12px 0 16px;">Quick Stream<br/>Selector Test</h3>
+                <p style="font-size:14px; opacity:0.8; line-height:1.6; margin-bottom:24px;">15-minute assessment to help 10th graders choose between Science, Commerce & Arts</p>
+                <div style="display:flex; gap:12px; margin-bottom:28px;">
+                    <span class="badge" style="background:rgba(255,255,255,0.15); color:#fff;">15 min</span>
+                    <span class="badge" style="background:rgba(255,255,255,0.15); color:#fff;">30 Questions</span>
+                    <span class="badge" style="background:rgba(255,255,255,0.15); color:#fff;">Instant Result</span>
+                </div>
+                <a href="/student/tests" class="btn btn-gold">Start Free Test →</a>
+            </div>
+            <div class="card" style="border-radius:20px; padding:40px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--ap-lavender);">PREMIUM</span>
+                <h3 style="font-family:var(--ap-font-display); font-size:28px; margin:12px 0 16px;">Full Career Choice<br/>Psychometric Test</h3>
+                <p style="font-size:14px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:24px;">In-depth assessment of aptitude, personality, interests & emotional intelligence. Detailed career mapping report.</p>
+                <div style="display:flex; gap:12px; margin-bottom:28px;">
+                    <span class="badge badge-lavender">45 min</span>
+                    <span class="badge badge-lavender">120 Questions</span>
+                    <span class="badge badge-lavender">PDF Report</span>
+                </div>
+                <a href="/register" class="btn btn-lavender">Take Test — ₹499</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- REFERRAL BANNER -->
+<section style="padding:60px;">
+    <div style="max-width:1200px; margin:0 auto; background:linear-gradient(135deg, var(--ap-gold), #C49038); border-radius:20px; padding:48px 56px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h3 style="font-family:var(--ap-font-display); font-size:32px; color:#fff; margin-bottom:8px;">Refer & Earn ₹100</h3>
+            <p style="font-size:15px; color:rgba(255,255,255,0.85);">Share your referral code. When your friend takes a premium test, you both earn credits!</p>
+        </div>
+        <a href="/register" class="btn" style="background:#fff; color:var(--ap-text); padding:14px 32px;">Get My Referral Code</a>
+    </div>
+</section>

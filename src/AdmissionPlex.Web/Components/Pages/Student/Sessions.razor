@@ -1,0 +1,216 @@
+@page "/student/sessions"
+@layout StudentLayout
+@inject HttpClient Http
+
+<PageTitle>Counsellor Sessions - AdmissionPlex</PageTitle>
+
+<div class="topbar">
+    <div><h2>Counsellor Sessions</h2><p class="topbar-subtitle">Book and manage your counselling sessions</p></div>
+    <button class="btn btn-primary" @onclick="() => showBooking = !showBooking">+ Book Session</button>
+</div>
+
+@if (showBooking)
+{
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">Book a New Session</h3>
+        <div class="grid-3" style="gap:16px;">
+            <div class="form-group">
+                <label class="form-label">Select Counsellor</label>
+                <select class="form-select" @bind="bookRequest.CounsellorId">
+                    <option value="0">Choose a counsellor...</option>
+                    @if (counsellors != null)
+                    {
+                        @foreach (var c in counsellors)
+                        {
+                            <option value="@c.Id">@c.FullName — @c.Specialization (⭐ @c.Rating)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date & Time</label>
+                <input class="form-input" type="datetime-local" @bind="bookRequest.ScheduledAt" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Session Type</label>
+                <select class="form-select" @bind="bookRequest.SessionType">
+                    <option value="Video">Video Call</option>
+                    <option value="Audio">Audio Call</option>
+                    <option value="Chat">Chat</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-primary" @onclick="BookSession" style="margin-top:8px;">Confirm Booking</button>
+    </div>
+}
+
+<!-- Available Counsellors -->
+<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Available Counsellors</h3>
+@if (counsellors == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="grid-3" style="margin-bottom:32px;">
+        @foreach (var c in counsellors)
+        {
+            <div class="card">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <div class="avatar" style="width:48px; height:48px; font-size:16px; background:linear-gradient(135deg, var(--ap-sky), var(--ap-lavender));">@c.FullName[0]</div>
+                    <div>
+                        <div style="font-weight:700; font-size:15px;">@c.FullName</div>
+                        <div style="font-size:12px; color:var(--ap-text-muted);">@c.Qualification</div>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(c.Specialization))
+                {
+                    <span class="badge badge-sky" style="margin-bottom:8px;">@c.Specialization</span>
+                }
+                <div style="font-size:13px; color:var(--ap-text-muted); margin-bottom:12px;">@c.ExperienceYears years experience · ⭐ @c.Rating · @c.TotalSessions sessions</div>
+                @if (!string.IsNullOrEmpty(c.Bio))
+                {
+                    <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.5; margin-bottom:12px;">@c.Bio</p>
+                }
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    @if (c.HourlyRate.HasValue)
+                    {
+                        <span style="font-weight:700; color:var(--ap-primary);">₹@c.HourlyRate/session</span>
+                    }
+                    <button class="btn btn-sm btn-primary" @onclick="() => SelectCounsellor(c.Id)">Book Now</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- My Sessions -->
+<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">My Sessions</h3>
+@if (sessions == null)
+{
+    <div class="spinner"></div>
+}
+else if (sessions.Any())
+{
+    <div class="card" style="padding:0; overflow:hidden;">
+        <table class="data-table">
+            <thead><tr><th>Counsellor</th><th>Date</th><th>Type</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach (var s in sessions)
+                {
+                    <tr>
+                        <td style="font-weight:600;">@s.CounsellorName</td>
+                        <td>@s.ScheduledAt.ToString("dd MMM yyyy, hh:mm tt")</td>
+                        <td><span class="badge badge-sky">@s.SessionType</span></td>
+                        <td><span class="badge @GetStatusBadge(s.Status)">@s.Status</span></td>
+                        <td>
+                            @if (s.Status == "Scheduled" || s.Status == "Confirmed")
+                            {
+                                @if (!string.IsNullOrEmpty(s.MeetingLink))
+                                {
+                                    <a href="@s.MeetingLink" target="_blank" class="btn btn-sm btn-sky">Join</a>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="card" style="padding:40px; text-align:center; color:var(--ap-text-muted);">
+        No sessions booked yet. Choose a counsellor above to get started!
+    </div>
+}
+
+@code {
+    private bool showBooking = false;
+    private List<CounsellorItem>? counsellors;
+    private List<SessionItem>? sessions;
+    private BookRequest bookRequest = new() { ScheduledAt = DateTime.Now.AddDays(1) };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadCounsellors(), LoadSessions());
+    }
+
+    private async Task LoadCounsellors()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<CounsellorItem>>>("api/counsellors");
+            counsellors = response?.Data ?? new();
+        }
+        catch { counsellors = new(); }
+    }
+
+    private async Task LoadSessions()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/counsellor-sessions/my-sessions");
+            sessions = response?.Data ?? new();
+        }
+        catch { sessions = new(); }
+    }
+
+    private void SelectCounsellor(long id)
+    {
+        bookRequest.CounsellorId = id;
+        showBooking = true;
+    }
+
+    private async Task BookSession()
+    {
+        if (bookRequest.CounsellorId == 0) return;
+        try
+        {
+            await Http.PostAsJsonAsync("api/counsellor-sessions", bookRequest);
+            showBooking = false;
+            await LoadSessions();
+        }
+        catch { }
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "Scheduled" => "badge-gold",
+        "Confirmed" => "badge-sky",
+        "InProgress" => "badge-lavender",
+        "Completed" => "badge-green",
+        "Cancelled" => "badge-red",
+        _ => "badge-primary"
+    };
+
+    private class CounsellorItem
+    {
+        public long Id { get; set; }
+        public string FullName { get; set; } = "";
+        public string Qualification { get; set; } = "";
+        public string? Specialization { get; set; }
+        public string? Bio { get; set; }
+        public int ExperienceYears { get; set; }
+        public decimal? HourlyRate { get; set; }
+        public decimal Rating { get; set; }
+        public int TotalSessions { get; set; }
+    }
+
+    private class SessionItem
+    {
+        public long Id { get; set; }
+        public string CounsellorName { get; set; } = "";
+        public string SessionType { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime ScheduledAt { get; set; }
+        public string? MeetingLink { get; set; }
+    }
+
+    private class BookRequest
+    {
+        public long CounsellorId { get; set; }
+        public DateTime ScheduledAt { get; set; }
+        public string SessionType { get; set; } = "Video";
+    }
+}

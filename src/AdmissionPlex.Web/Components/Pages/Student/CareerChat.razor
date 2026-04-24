@@ -1,0 +1,197 @@
+@page "/student/chat"
+@layout StudentLayout
+@inject HttpClient Http
+
+<PageTitle>Career Chat - AdmissionPlex</PageTitle>
+
+<div class="topbar"><h2>Career Chat</h2></div>
+
+<div class="chat-container">
+    <!-- Chat Header -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; padding:16px 20px;" class="card">
+        <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, var(--ap-sky), var(--ap-lavender)); display:flex; align-items:center; justify-content:center; font-size:18px;">🤖</div>
+        <div style="flex:1;">
+            <div style="font-weight:700; font-size:15px;">CareerBot AI</div>
+            <div style="font-size:11px; color:var(--ap-green);">● Personalized to your profile</div>
+        </div>
+        @if (sessions.Any())
+        {
+            <select class="form-select" style="width:auto; font-size:12px;" @onchange="OnSessionChanged">
+                <option value="0">New Chat</option>
+                @foreach (var s in sessions)
+                {
+                    <option value="@s.Id" selected="@(s.Id == currentSessionId)">@(s.Title ?? $"Chat {s.Id}")</option>
+                }
+            </select>
+        }
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+        @if (!messages.Any())
+        {
+            <div style="text-align:center; padding:60px 20px; color:var(--ap-text-muted);">
+                <div style="font-size:48px; margin-bottom:16px;">💬</div>
+                <p style="font-size:16px; font-weight:600; margin-bottom:8px;">Start a conversation</p>
+                <p style="font-size:13px;">Ask me about career options, entrance exams, salary prospects, or anything career-related!</p>
+            </div>
+        }
+        @foreach (var msg in messages)
+        {
+            <div class="chat-bubble @(msg.Role.ToLower() == "user" ? "user" : "assistant")">
+                @msg.Content
+            </div>
+        }
+        @if (isTyping)
+        {
+            <div class="chat-bubble assistant" style="opacity:0.6;">
+                <span>Thinking</span><span class="typing-dots">...</span>
+            </div>
+        }
+    </div>
+
+    <!-- Quick Suggestions -->
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        @foreach (var s in suggestions)
+        {
+            <button class="btn btn-sm btn-outline" style="border-radius:20px; font-size:12px;" @onclick="() => SendMessage(s)">@s</button>
+        }
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-row">
+        <input placeholder="Ask anything about your career options..." @bind="inputMessage" @bind:event="oninput"
+               @onkeydown="HandleKeyDown" disabled="@isTyping" />
+        <button class="chat-send-btn" @onclick="() => SendMessage(inputMessage)" disabled="@(isTyping || string.IsNullOrWhiteSpace(inputMessage))">↑</button>
+    </div>
+</div>
+
+<style>
+    .typing-dots { animation: blink 1.4s infinite; }
+    @@keyframes blink { 0%, 20% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+
+@code {
+    private string inputMessage = "";
+    private bool isTyping = false;
+    private long currentSessionId = 0;
+    private List<ChatMsg> messages = new();
+    private List<SessionItem> sessions = new();
+    private string[] suggestions = { "Best careers for Science students", "Compare CS vs Medicine", "What entrance exams do I need?", "Salary comparison by career" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSessions();
+    }
+
+    private async Task LoadSessions()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SessionItem>>>("api/chat/sessions");
+            sessions = response?.Data ?? new();
+        }
+        catch { sessions = new(); }
+    }
+
+    private async Task OnSessionChanged(ChangeEventArgs e)
+    {
+        var sessionId = long.Parse(e.Value?.ToString() ?? "0");
+        if (sessionId == 0)
+        {
+            currentSessionId = 0;
+            messages.Clear();
+            return;
+        }
+        currentSessionId = sessionId;
+        await LoadMessages(sessionId);
+    }
+
+    private async Task LoadMessages(long sessionId)
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<ChatMsg>>>($"api/chat/sessions/{sessionId}/messages");
+            messages = response?.Data ?? new();
+        }
+        catch { messages = new(); }
+    }
+
+    private void HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(inputMessage) && !isTyping)
+            _ = SendMessage(inputMessage);
+    }
+
+    private async Task SendMessage(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || isTyping) return;
+
+        var userText = text;
+        inputMessage = "";
+        isTyping = true;
+
+        // Add user message to UI immediately
+        messages.Add(new ChatMsg { Role = "User", Content = userText, CreatedAt = DateTime.UtcNow });
+        StateHasChanged();
+
+        try
+        {
+            if (currentSessionId == 0)
+            {
+                // Start new session
+                var response = await Http.PostAsJsonAsync("api/chat/sessions", new { InitialMessage = userText });
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<NewSessionResult>>();
+                    if (result?.Data != null)
+                    {
+                        currentSessionId = result.Data.SessionId;
+                        messages.Clear();
+                        messages.AddRange(result.Data.Messages);
+                        await LoadSessions();
+                    }
+                }
+            }
+            else
+            {
+                // Send to existing session
+                var response = await Http.PostAsJsonAsync($"api/chat/sessions/{currentSessionId}/messages", new { Message = userText });
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<ChatMsg>>();
+                    if (result?.Data != null)
+                        messages.Add(result.Data);
+                }
+            }
+        }
+        catch
+        {
+            messages.Add(new ChatMsg { Role = "Assistant", Content = "Sorry, I couldn't process that. Please try again.", CreatedAt = DateTime.UtcNow });
+        }
+
+        isTyping = false;
+        StateHasChanged();
+    }
+
+    private class ChatMsg
+    {
+        public long Id { get; set; }
+        public string Role { get; set; } = "";
+        public string Content { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private class SessionItem
+    {
+        public long Id { get; set; }
+        public string? Title { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private class NewSessionResult
+    {
+        public long SessionId { get; set; }
+        public List<ChatMsg> Messages { get; set; } = new();
+    }
+}

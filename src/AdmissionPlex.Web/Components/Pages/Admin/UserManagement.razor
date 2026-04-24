@@ -1,0 +1,26 @@
+@page "/admin/users"
+@layout AdminLayout
+
+<PageTitle>User Management - Admin</PageTitle>
+
+<div class="topbar">
+    <div><h2>User Management</h2><p class="topbar-subtitle">Manage students, counsellors, and coordinators</p></div>
+    <button class="btn btn-primary">+ Add User</button>
+</div>
+
+<div style="display:flex; gap:12px; margin-bottom:20px;">
+    <button class="btn btn-sm btn-primary">All Users</button>
+    <button class="btn btn-sm btn-outline">Students</button>
+    <button class="btn btn-sm btn-outline">Counsellors</button>
+    <button class="btn btn-sm btn-outline">Coordinators</button>
+    <button class="btn btn-sm btn-outline">Admins</button>
+    <div style="margin-left:auto;">
+        <input class="form-input" style="width:250px;" placeholder="Search by name or email..." />
+    </div>
+</div>
+
+<div class="card" style="padding:60px; text-align:center;">
+    <div style="font-size:48px; margin-bottom:16px;">👥</div>
+    <h3 style="font-size:18px; margin-bottom:8px;">User Management</h3>
+    <p style="color:var(--ap-text-muted);">Manage all users across roles. Create, edit, deactivate user accounts.</p>
+</div>

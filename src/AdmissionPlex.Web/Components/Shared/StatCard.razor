@@ -1,0 +1,15 @@
+<div class="stat-card">
+    <div class="stat-label">@Label</div>
+    <div class="stat-value">@Value</div>
+    @if (!string.IsNullOrEmpty(Change))
+    {
+        <div class="stat-change @(IsPositive ? "positive" : "negative")">@Change</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string? Change { get; set; }
+    [Parameter] public bool IsPositive { get; set; } = true;
+}

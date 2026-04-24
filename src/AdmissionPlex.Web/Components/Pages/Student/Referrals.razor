@@ -1,0 +1,63 @@
+@page "/student/referrals"
+@layout StudentLayout
+@inject HttpClient Http
+
+<PageTitle>My Referrals - AdmissionPlex</PageTitle>
+
+<div class="topbar"><h2>My Referrals</h2></div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:20px;">Your Referral Code</h3>
+        <div style="background:var(--ap-gold-light); border-radius:12px; padding:24px; text-align:center; margin-bottom:20px;">
+            <div style="font-size:11px; color:var(--ap-text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Share this code</div>
+            <div style="font-family:var(--ap-font-display); font-size:32px; letter-spacing:4px;">@(stats?.Code ?? "...")</div>
+        </div>
+        <div style="display:flex; justify-content:space-around; text-align:center; margin-bottom:20px;">
+            <div><div style="font-weight:700; font-size:24px; color:var(--ap-primary);">@(stats?.TotalReferrals ?? 0)</div><div style="font-size:11px; color:var(--ap-text-muted);">Referrals</div></div>
+            <div><div style="font-weight:700; font-size:24px; color:var(--ap-green);">@(stats?.Converted ?? 0)</div><div style="font-size:11px; color:var(--ap-text-muted);">Converted</div></div>
+            <div><div style="font-weight:700; font-size:24px; color:var(--ap-gold);">₹@(stats?.CreditsEarned ?? 0)</div><div style="font-size:11px; color:var(--ap-text-muted);">Earned</div></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;">Share Referral Link</button>
+    </div>
+
+    <div class="card">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">How it works</h3>
+        <div style="margin-bottom:16px;">
+            <div style="display:flex; gap:12px; align-items:start; margin-bottom:16px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:rgba(27,77,62,0.1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:var(--ap-primary); flex-shrink:0;">1</div>
+                <div><div style="font-weight:600; font-size:14px;">Share your code</div><div style="font-size:13px; color:var(--ap-text-muted);">Send your referral code to friends via WhatsApp, SMS or social media.</div></div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:start; margin-bottom:16px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:rgba(27,77,62,0.1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:var(--ap-primary); flex-shrink:0;">2</div>
+                <div><div style="font-weight:600; font-size:14px;">Friend registers</div><div style="font-size:13px; color:var(--ap-text-muted);">Your friend signs up using your code during registration.</div></div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:start;">
+                <div style="width:32px; height:32px; border-radius:50%; background:rgba(27,77,62,0.1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:var(--ap-primary); flex-shrink:0;">3</div>
+                <div><div style="font-weight:600; font-size:14px;">Both earn ₹100</div><div style="font-size:13px; color:var(--ap-text-muted);">When they take a premium test, you both get ₹100 credit!</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ReferralStats? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<ReferralStats>>("api/referrals/stats");
+            stats = response?.Data;
+        }
+        catch { stats = new ReferralStats { Code = "LOADING..." }; }
+    }
+
+    private class ReferralStats
+    {
+        public string Code { get; set; } = "";
+        public int TotalReferrals { get; set; }
+        public int Converted { get; set; }
+        public int CreditsEarned { get; set; }
+    }
+}

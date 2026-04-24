@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: admissionplex
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/AdmissionPlex.Api/Dockerfile
+    ports:
+      - "5001:8080"
+    depends_on:
+      - postgres
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=admissionplex;Username=postgres;Password=yourpassword
+
+  web:
+    build:
+      context: .
+      dockerfile: src/AdmissionPlex.Web/Dockerfile
+    ports:
+      - "5002:8080"
+    depends_on:
+      - api
+    environment:
+      - ApiUrl=http://api:8080
+
+volumes:
+  pgdata:
