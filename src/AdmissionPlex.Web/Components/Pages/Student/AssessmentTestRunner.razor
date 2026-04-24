@@ -146,14 +146,28 @@ else
     private string? errorMsg;
     private string testTitle = "";
     private SubmitResultData submitResult = new();
+    private string? _loadedCode;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender) { await LoadTest(); StateHasChanged(); }
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        // Re-load when navigating to a different sub-test
+        if (_loadedCode != null && _loadedCode != Code)
+        {
+            loading = true; submitted = false; testData = null;
+            answers.Clear(); errorMsg = null;
+            await LoadTest();
+            StateHasChanged();
+        }
+    }
+
     private async Task LoadTest()
     {
+        _loadedCode = Code;
         try
         {
             var resp = await Api.PostAsJsonAsync($"api/assessment/test/{Code}/start", new { });
