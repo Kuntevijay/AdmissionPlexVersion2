@@ -39,6 +39,7 @@ public class AssessmentController : ControllerBase
         // Get or create assessment session
         var session = await _context.AssessmentSessions
             .Include(s => s.Attempts).ThenInclude(a => a.Test)
+            .Include(s => s.Attempts).ThenInclude(a => a.Responses)
             .FirstOrDefaultAsync(s => s.StudentId == studentId);
 
         if (session == null)
@@ -211,6 +212,11 @@ public class AssessmentController : ControllerBase
 
         attempt.Status = AttemptStatus.Completed;
         attempt.CompletedAt = DateTime.UtcNow;
+
+        // SAVE RESPONSES FIRST - scoring queries need them in DB
+        await _context.SaveChangesAsync();
+
+        // Re-count completed after save
         session.CompletedCount = session.Attempts.Count(a => a.Status == AttemptStatus.Completed);
 
         // Check if all sub-tests are completed
@@ -227,7 +233,7 @@ public class AssessmentController : ControllerBase
             reportId = Guid.NewGuid();
             session.SavedReportId = reportId;
 
-            // Compute scores across ALL attempts
+            // Compute scores across ALL attempts (responses are now in DB)
             await ComputeFullAssessmentScoresAsync(session);
         }
         else

@@ -313,3 +313,5 @@ public class LegacyImport
 public class LegacyIQ { public string Text { get; set; } = ""; }
 public class LegacyAQ { public string Text { get; set; } = ""; public List<LegacyOpt>? Options { get; set; } }
 public class LegacyOpt { public string? Text { get; set; } public bool Correct { get; set; } public decimal Score { get; set; } }
+
+// In ImportController class - but we need to add inside the class
