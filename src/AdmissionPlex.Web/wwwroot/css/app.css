@@ -176,3 +176,32 @@ a:hover { color: var(--ap-primary-light); }
     .main-content { margin-left: 0; padding: 16px; }
     .public-nav { padding: 12px 16px; }
 }
+
+/* === DARK THEME === */
+:root[data-theme="dark"] {
+    --ap-bg: #0F1419;
+    --ap-bg-admin: #0B0F14;
+    --ap-surface: #1A1F26;
+    --ap-sidebar: #05070A;
+    --ap-border: #2A2F36;
+    --ap-text: #E5E7EB;
+    --ap-text-muted: #9CA3AF;
+    --ap-gold-light: rgba(212,168,83,0.18);
+}
+:root[data-theme="dark"] body { color-scheme: dark; }
+[data-theme="dark"] .public-nav { background: rgba(15,20,25,0.88); border-bottom-color: var(--ap-border); }
+[data-theme="dark"] .footer { background: #05070A; color: rgba(255,255,255,0.6); }
+[data-theme="dark"] .data-table thead th { background: var(--ap-bg-admin); }
+[data-theme="dark"] .data-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+[data-theme="dark"] .btn-outline { color: var(--ap-text); border-color: var(--ap-border); }
+[data-theme="dark"] .btn-outline:hover { color: var(--ap-primary-light); border-color: var(--ap-primary-light); }
+[data-theme="dark"] .badge-primary { background: rgba(42,123,95,0.22); color: var(--ap-primary-light); }
+[data-theme="dark"] .chat-bubble.assistant { background: var(--ap-bg-admin); }
+[data-theme="dark"] .form-input, [data-theme="dark"] .form-select, [data-theme="dark"] .form-textarea { background: var(--ap-bg-admin); }
+
+/* === THEME TOGGLE === */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; background: transparent; border: 1px solid var(--ap-border); cursor: pointer; font-size: 16px; color: var(--ap-text); transition: all 0.2s; font-family: var(--ap-font-body); }
+.theme-toggle:hover { background: var(--ap-surface); border-color: var(--ap-primary-light); }
+.sidebar .theme-toggle { width: calc(100% - 16px); margin: 2px 8px; padding: 10px 16px; border: none; border-radius: 8px; color: rgba(255,255,255,0.55); background: transparent; justify-content: flex-start; gap: 12px; font-size: 13px; }
+.sidebar .theme-toggle:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.9); border: none; }
+.sidebar .theme-toggle .icon { font-size: 15px; width: 20px; text-align: center; }

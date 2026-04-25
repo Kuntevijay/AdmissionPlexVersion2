@@ -6,6 +6,22 @@
     <title>AdmissionPlex</title>
     <base href="/" />
     <link href="css/app.css" rel="stylesheet" />
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('ap-theme');
+                if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+            } catch (e) { }
+        })();
+        window.apThemeSet = function (t) {
+            if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+            else delete document.documentElement.dataset.theme;
+            try { localStorage.setItem('ap-theme', t); } catch (e) { }
+        };
+        window.apThemeGet = function () {
+            try { return localStorage.getItem('ap-theme') || 'light'; } catch (e) { return 'light'; }
+        };
+    </script>
     <HeadOutlet @rendermode="RenderMode.InteractiveServer" />
 </head>
 <body>

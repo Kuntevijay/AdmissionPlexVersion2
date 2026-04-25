@@ -1,0 +1,49 @@
+@inject IJSRuntime JS
+
+@if (InSidebar)
+{
+    <button type="button" class="theme-toggle" @onclick="Toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span class="icon">@(isDark ? "☀️" : "🌙")</span>
+        <span>@(isDark ? "Light Mode" : "Dark Mode")</span>
+    </button>
+}
+else
+{
+    <button type="button" class="theme-toggle" @onclick="Toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+        @(isDark ? "☀️" : "🌙")
+    </button>
+}
+
+@code {
+    [Parameter] public bool InSidebar { get; set; }
+
+    private bool isDark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var theme = await JS.InvokeAsync<string?>("apThemeGet");
+                var nowDark = theme == "dark";
+                if (nowDark != isDark)
+                {
+                    isDark = nowDark;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    private async Task Toggle()
+    {
+        isDark = !isDark;
+        try
+        {
+            await JS.InvokeVoidAsync("apThemeSet", isDark ? "dark" : "light");
+        }
+        catch { }
+    }
+}
