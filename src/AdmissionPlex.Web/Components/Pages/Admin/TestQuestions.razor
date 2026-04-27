@@ -35,6 +35,7 @@
                     <option value="StreamSelector">Stream Selector</option>
                 </select>
             </div>
+            <div class="form-group"><label class="form-label">Time limit (min, 0=none)</label><input class="form-input" type="number" @bind="newSectionTimeLimit" /></div>
             <div class="form-group">
                 <label class="form-label">Interest category</label>
                 <select class="form-select" @bind="newSectionInterestId">
@@ -42,6 +43,8 @@
                     @foreach (var c in interestCats) { <option value="@c.Id">@c.Code — @c.Name</option> }
                 </select>
             </div>
+        </div>
+        <div class="grid-2" style="gap:8px; margin-bottom:8px;">
             <div class="form-group">
                 <label class="form-label">Aptitude category</label>
                 <select class="form-select" @bind="newSectionAptitudeId">
@@ -84,7 +87,10 @@
                 </select>
             </div>
         </div>
-        <button class="btn btn-outline btn-sm" style="margin-bottom:12px;" @onclick="LoadAvailable">Search</button>
+        <div class="grid-2" style="gap:8px; margin-bottom:12px;">
+            <div class="form-group"><label class="form-label">Per-question time limit (seconds, 0 = no limit)</label><input class="form-input" type="number" @bind="questionTimeLimit" placeholder="e.g. 30" /></div>
+            <div><button class="btn btn-outline btn-sm" style="margin-top:22px;" @onclick="LoadAvailable">Search</button></div>
+        </div>
 
         @if (availableQuestions != null && availableQuestions.Any())
         {
@@ -114,7 +120,22 @@
 <!-- Sections and Questions -->
 @if (loading)
 { <div class="spinner"></div> }
-else if (testData?.Sections != null)
+else if (testData?.Sections == null || !testData.Sections.Any())
+{
+    <div class="card" style="padding:40px; text-align:center;">
+        <div style="font-size:40px; margin-bottom:12px;">📂</div>
+        <h3 style="font-size:16px; margin-bottom:8px;">No sections yet</h3>
+        <p style="font-size:13px; color:var(--ap-text-muted); margin-bottom:16px;">
+            A test needs at least one section before you can add questions.<br/>
+            Create a section manually, or use quick setup to auto-create one.
+        </p>
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn btn-primary" @onclick="() => showAddSection = true">+ Add Section Manually</button>
+            <button class="btn btn-outline" @onclick="QuickSetupDefault">Quick Setup — Default Section</button>
+        </div>
+    </div>
+}
+else
 {
     @foreach (var sec in testData.Sections)
     {
@@ -126,6 +147,8 @@ else if (testData?.Sections != null)
                         <span class="badge @(sec.SectionType == "Interest" ? "badge-coral" : sec.SectionType == "Aptitude" ? "badge-sky" : "badge-green")" style="font-size:10px;">@sec.SectionType</span>
                         @if (!string.IsNullOrEmpty(sec.CategoryName)) { <span class="badge badge-primary" style="font-size:10px;">@sec.CategoryName</span> }
                         <span class="badge badge-gold" style="font-size:10px;">@sec.Questions.Count questions</span>
+                        @if (sec.TimeLimitMinutes.HasValue && sec.TimeLimitMinutes > 0)
+                        { <span class="badge badge-coral" style="font-size:10px;">⏱ @sec.TimeLimitMinutes min</span> }
                     </div>
                 </div>
             </div>
@@ -139,6 +162,8 @@ else if (testData?.Sections != null)
                             <span style="font-size:11px; color:var(--ap-text-muted); min-width:24px;">@q.QuestionOrder.</span>
                             <div style="flex:1; font-size:13px;">@q.Text</div>
                             <span class="badge badge-primary" style="font-size:9px;">@q.Type · @q.OptionsCount opts</span>
+                            @if (q.TimeLimitSeconds.HasValue && q.TimeLimitSeconds > 0)
+                            { <span class="badge badge-coral" style="font-size:9px;">⏱ @q.TimeLimitSeconds s</span> }
                             <button style="background:none; border:none; cursor:pointer; color:var(--ap-red); font-size:14px;" 
                                     @onclick="() => RemoveQuestion(sec.SectionId, q.LinkId)">✕</button>
                         </div>
@@ -147,16 +172,10 @@ else if (testData?.Sections != null)
             }
             else
             {
-                <p style="font-size:13px; color:var(--ap-text-muted); text-align:center; padding:16px;">No questions in this section. Use "+ Add Questions" to assign questions.</p>
+                <p style="font-size:13px; color:var(--ap-text-muted); text-align:center; padding:16px;">No questions in this section. Use "+ Add Questions" above to assign questions.</p>
             }
         </div>
     }
-}
-else
-{
-    <div class="card" style="padding:60px; text-align:center;">
-        <p style="color:var(--ap-text-muted);">No sections found. Add a section first, then add questions to it.</p>
-    </div>
 }
 
 @code {
@@ -171,16 +190,18 @@ else
     private bool showAddQuestion = false;
     private string msg = "", err = "";
 
+    // Add question form
+    private string searchText = "";
+    private string filterType = "";
+    private long targetSectionId = 0;
+    private int questionTimeLimit = 0;
+
     // Add section form
     private string newSectionTitle = "";
     private string newSectionType = "Aptitude";
     private long newSectionInterestId = 0;
     private long newSectionAptitudeId = 0;
-
-    // Add question form
-    private string searchText = "";
-    private string filterType = "";
-    private long targetSectionId = 0;
+    private int newSectionTimeLimit = 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -217,10 +238,29 @@ else
     private async Task AddSection()
     {
         msg = ""; err = "";
-        var dto = new { Title = newSectionTitle, SectionType = newSectionType, InterestCategoryId = newSectionInterestId > 0 ? (long?)newSectionInterestId : null, AptitudeCategoryId = newSectionAptitudeId > 0 ? (long?)newSectionAptitudeId : null };
+        var dto = new { Title = newSectionTitle, SectionType = newSectionType, InterestCategoryId = newSectionInterestId > 0 ? (long?)newSectionInterestId : null, AptitudeCategoryId = newSectionAptitudeId > 0 ? (long?)newSectionAptitudeId : null, TimeLimitMinutes = newSectionTimeLimit > 0 ? (int?)newSectionTimeLimit : null };
         var resp = await Api.PostAsJsonAsync($"api/tests/{TestId}/sections", dto);
         if (resp.IsSuccessStatusCode) { msg = "Section added."; showAddSection = false; await LoadAll(); }
         else err = "Failed to add section.";
+        StateHasChanged();
+    }
+
+    private async Task QuickSetupDefault()
+    {
+        msg = ""; err = "";
+        try
+        {
+            var dto = new { Title = testData?.Title ?? "General", SectionType = "Aptitude", TimeLimitMinutes = (int?)null };
+            var resp = await Api.PostAsJsonAsync($"api/tests/{TestId}/sections", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                msg = "Default section created. Now add questions to it.";
+                showAddQuestion = true;
+                await LoadAll();
+            }
+            else err = "Failed.";
+        }
+        catch (Exception ex) { err = ex.Message; }
         StateHasChanged();
     }
 
@@ -228,7 +268,7 @@ else
     {
         msg = ""; err = "";
         if (targetSectionId == 0) { err = "Select a section first."; StateHasChanged(); return; }
-        var resp = await Api.PostAsJsonAsync($"api/tests/{TestId}/sections/{targetSectionId}/add-question", new { QuestionId = questionId });
+        var resp = await Api.PostAsJsonAsync($"api/tests/{TestId}/sections/{targetSectionId}/add-question", new { QuestionId = questionId, TimeLimitSeconds = questionTimeLimit > 0 ? (int?)questionTimeLimit : null });
         if (resp.IsSuccessStatusCode) { msg = "Question added."; await LoadAll(); await LoadAvailable(); }
         else { var e = await resp.Content.ReadFromJsonAsync<ApiResponse<object>>(); err = e?.Errors?.FirstOrDefault() ?? "Failed."; }
         StateHasChanged();
@@ -257,6 +297,7 @@ else
         public string Title { get; set; } = "";
         public string SectionType { get; set; } = "";
         public string CategoryName { get; set; } = "";
+        public int? TimeLimitMinutes { get; set; }
         public List<QuestionData> Questions { get; set; } = new();
     }
 
@@ -268,6 +309,7 @@ else
         public string Text { get; set; } = "";
         public string Type { get; set; } = "";
         public int OptionsCount { get; set; }
+        public int? TimeLimitSeconds { get; set; }
     }
 
     private class AvailableQ

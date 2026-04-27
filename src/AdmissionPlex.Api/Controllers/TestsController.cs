@@ -360,11 +360,13 @@ public class TestsController : ControllerBase
             {
                 SectionId = s.Id, s.Title, SectionType = s.SectionType.ToString(),
                 CategoryName = s.InterestCategory?.Name ?? s.AptitudeCategory?.Name ?? "",
+                s.TimeLimitMinutes,
                 Questions = s.Questions.OrderBy(q => q.QuestionOrder).Select(sq => new
                 {
                     LinkId = sq.Id, sq.QuestionId, sq.QuestionOrder,
                     Text = sq.Question.QuestionText, Type = sq.Question.QuestionType.ToString(),
-                    OptionsCount = sq.Question.Options.Count
+                    OptionsCount = sq.Question.Options.Count,
+                    sq.TimeLimitSeconds
                 }).ToList()
             }).ToList()
         }));
@@ -378,7 +380,7 @@ public class TestsController : ControllerBase
         if (section == null) return NotFound(ApiResponse<object>.Fail("Section not found."));
         if (section.Questions.Any(q => q.QuestionId == dto.QuestionId)) return BadRequest(ApiResponse<object>.Fail("Already added."));
         var maxOrder = section.Questions.Any() ? section.Questions.Max(q => q.QuestionOrder) : 0;
-        section.Questions.Add(new TestSectionQuestion { QuestionId = dto.QuestionId, QuestionOrder = maxOrder + 1 });
+        section.Questions.Add(new TestSectionQuestion { QuestionId = dto.QuestionId, QuestionOrder = maxOrder + 1, TimeLimitSeconds = dto.TimeLimitSeconds });
         var test = await _context.Tests.Include(t => t.Sections).ThenInclude(s => s.Questions).FirstOrDefaultAsync(t => t.Id == id);
         if (test != null) test.TotalQuestions = test.Sections.Sum(s => s.Questions.Count);
         await _context.SaveChangesAsync();
@@ -409,7 +411,8 @@ public class TestsController : ControllerBase
         {
             TestId = id, Title = dto.Title,
             SectionType = Enum.TryParse<SectionType>(dto.SectionType, true, out var st) ? st : SectionType.Aptitude,
-            SectionOrder = maxOrder + 1, InterestCategoryId = dto.InterestCategoryId, AptitudeCategoryId = dto.AptitudeCategoryId
+            SectionOrder = maxOrder + 1, InterestCategoryId = dto.InterestCategoryId, AptitudeCategoryId = dto.AptitudeCategoryId,
+            TimeLimitMinutes = dto.TimeLimitMinutes
         };
         _context.Set<TestSection>().Add(section);
         await _context.SaveChangesAsync();
@@ -437,7 +440,7 @@ public class TestsController : ControllerBase
         {
             Code = dto.Code, Title = dto.Title, Slug = dto.Code.Replace("_", "-"),
             TestType = Enum.TryParse<TestType>(dto.TestType, true, out var tt) ? tt : TestType.PsychometricFull,
-            Category = dto.Category, Description = dto.Description, Icon = dto.Icon ?? "📝",
+            Category = dto.Category, Categories = dto.Categories, Description = dto.Description, Icon = dto.Icon ?? "📝",
             DisplayOrder = dto.DisplayOrder, DurationMinutes = dto.DurationMinutes,
             Price = dto.Price, IsActive = dto.IsActive, IsPublic = dto.IsPublic,
             RequiresPayment = dto.RequiresPayment, IsContinuityFlow = dto.IsContinuityFlow,
@@ -456,7 +459,7 @@ public class TestsController : ControllerBase
         var test = await _context.Tests.FindAsync(id);
         if (test == null) return NotFound();
         test.Code = dto.Code; test.Title = dto.Title; test.Slug = dto.Code.Replace("_", "-");
-        test.Category = dto.Category; test.Description = dto.Description; test.Icon = dto.Icon;
+        test.Category = dto.Category; test.Categories = dto.Categories; test.Description = dto.Description; test.Icon = dto.Icon;
         test.DisplayOrder = dto.DisplayOrder; test.DurationMinutes = dto.DurationMinutes;
         test.Price = dto.Price; test.IsActive = dto.IsActive; test.IsPublic = dto.IsPublic;
         test.RequiresPayment = dto.RequiresPayment; test.IsContinuityFlow = dto.IsContinuityFlow;
@@ -481,7 +484,7 @@ public class TestsController : ControllerBase
     private static TestDto MapToDto(Test t) => new()
     {
         Id = t.Id, Code = t.Code, Title = t.Title, Slug = t.Slug,
-        TestType = t.TestType.ToString(), Category = t.Category,
+        TestType = t.TestType.ToString(), Category = t.Category, Categories = t.Categories,
         Description = t.Description, Icon = t.Icon, DisplayOrder = t.DisplayOrder,
         DurationMinutes = t.DurationMinutes, TotalQuestions = t.TotalQuestions,
         Price = t.Price, IsActive = t.IsActive,
@@ -563,6 +566,7 @@ public class CreateTestDto
     public string Title { get; set; } = "";
     public string? TestType { get; set; }
     public string? Category { get; set; }
+    public string? Categories { get; set; }
     public string? Description { get; set; }
     public string? Icon { get; set; }
     public int DisplayOrder { get; set; }
@@ -577,5 +581,5 @@ public class CreateTestDto
     public bool IncludesCounsellorSession { get; set; }
 }
 
-public class AddQuestionDto { public long QuestionId { get; set; } }
-public class AddSectionDto { public string Title { get; set; } = ""; public string SectionType { get; set; } = "Aptitude"; public long? InterestCategoryId { get; set; } public long? AptitudeCategoryId { get; set; } }
+public class AddQuestionDto { public long QuestionId { get; set; } public int? TimeLimitSeconds { get; set; } }
+public class AddSectionDto { public string Title { get; set; } = ""; public string SectionType { get; set; } = "Aptitude"; public long? InterestCategoryId { get; set; } public long? AptitudeCategoryId { get; set; } public int? TimeLimitMinutes { get; set; } }

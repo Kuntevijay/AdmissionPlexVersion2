@@ -163,36 +163,46 @@
             <div class="form-group"><label class="form-label">Title *</label><input class="form-input" @bind="f.Title" /></div>
             <div class="form-group"><label class="form-label">Icon</label><input class="form-input" @bind="f.Icon" placeholder="📝" /></div>
         </div>
-        <div class="grid-3" style="gap:12px; margin-bottom:12px;">
-            <div class="form-group">
-                <label class="form-label">Test type</label>
-                <select class="form-select" @bind="f.TestType">
-                    <option value="StreamSelector">Stream Selector (Quiz)</option>
-                    <option value="PsychometricFull">Psychometric Full</option>
-                    <option value="InterestSurvey">Interest Survey</option>
-                    <option value="AptitudeTest">Aptitude Test</option>
-                    <option value="IQTest">IQ Test</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Category</label>
-                <select class="form-select" @bind="f.Category">
-                    <option value="">— None —</option>
-                    <option value="Interest">Interest</option>
-                    <option value="Aptitude">Aptitude</option>
-                    <option value="IQ">IQ</option>
-                </select>
-            </div>
+        <div class="grid-2" style="gap:12px; margin-bottom:12px;">
             <div class="form-group"><label class="form-label">Duration (min)</label><input class="form-input" type="number" @bind="f.DurationMinutes" /></div>
+            <div class="form-group"><label class="form-label">Display order</label><input class="form-input" type="number" @bind="f.DisplayOrder" /></div>
+        </div>
+
+        <!-- Category checkboxes -->
+        <div style="margin-bottom:12px;">
+            <label class="form-label">Categories (select which this test covers)</label>
+            <div style="padding:12px 16px; background:var(--ap-bg); border-radius:8px;">
+                <div style="font-size:12px; font-weight:600; color:var(--ap-coral); margin-bottom:6px;">Interest</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                    @foreach (var c in interestCats)
+                    {
+                        var code = c.Code;
+                        <label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; padding:4px 8px; background:var(--ap-surface); border:1px solid var(--ap-border); border-radius:6px;">
+                            <input type="checkbox" checked="@IsCatSelected(code)" @onchange="e => ToggleCat(code, (bool)(e.Value ?? false))" />
+                            @c.Code — @c.Name
+                        </label>
+                    }
+                </div>
+                <div style="font-size:12px; font-weight:600; color:var(--ap-sky); margin-bottom:6px;">Aptitude</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @foreach (var c in aptitudeCats)
+                    {
+                        var code = c.Code;
+                        <label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; padding:4px 8px; background:var(--ap-surface); border:1px solid var(--ap-border); border-radius:6px;">
+                            <input type="checkbox" checked="@IsCatSelected(code)" @onchange="e => ToggleCat(code, (bool)(e.Value ?? false))" />
+                            @c.Code — @c.Name
+                        </label>
+                    }
+                </div>
+            </div>
         </div>
         <div class="form-group" style="margin-bottom:12px;">
             <label class="form-label">Description</label>
             <textarea class="form-textarea" @bind="f.Description" rows="2"></textarea>
         </div>
-        <div class="grid-3" style="gap:12px; margin-bottom:12px;">
+        <div class="grid-2" style="gap:12px; margin-bottom:12px;">
             <div class="form-group"><label class="form-label">Price (0 = free)</label><input class="form-input" type="number" @bind="f.Price" /></div>
-            <div class="form-group"><label class="form-label">Display order</label><input class="form-input" type="number" @bind="f.DisplayOrder" /></div>
-            <div class="form-group"><label class="form-label">Parent test code</label><input class="form-input" @bind="f.ParentTestCode" placeholder="psychometric" /></div>
+            <div class="form-group"><label class="form-label">Parent test code (for continuity)</label><input class="form-input" @bind="f.ParentTestCode" placeholder="psychometric" /></div>
         </div>
         <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px; padding:14px 16px; background:var(--ap-bg); border-radius:8px;">
             <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" @bind="f.IsActive" /> Active</label>
@@ -447,10 +457,23 @@ else
         StateHasChanged();
     }
 
+    private bool IsCatSelected(string code)
+    {
+        return !string.IsNullOrEmpty(f.Categories) && f.Categories.Split(',').Contains(code);
+    }
+
+    private void ToggleCat(string code, bool selected)
+    {
+        var cats = string.IsNullOrEmpty(f.Categories) ? new List<string>() : f.Categories.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        if (selected && !cats.Contains(code)) cats.Add(code);
+        else if (!selected) cats.Remove(code);
+        f.Categories = cats.Any() ? string.Join(",", cats) : null;
+    }
+
     private void OpenNew()
     {
         editId = 0;
-        f = new FormModel { IsActive = true, TestType = "PsychometricFull", Icon = "📝" };
+        f = new FormModel { IsActive = true, Icon = "📝" };
         showForm = true;
     }
 
@@ -463,6 +486,7 @@ else
             Title = t.Title,
             TestType = t.TestType,
             Category = t.Category,
+            Categories = t.Categories,
             Description = t.Description,
             Icon = t.Icon,
             DisplayOrder = t.DisplayOrder,
@@ -519,7 +543,7 @@ else
         {
             var dto = new FormModel
             {
-                Code = t.Code, Title = t.Title, TestType = t.TestType, Category = t.Category,
+                Code = t.Code, Title = t.Title, TestType = t.TestType, Category = t.Category, Categories = t.Categories,
                 Description = t.Description, Icon = t.Icon, DisplayOrder = t.DisplayOrder,
                 DurationMinutes = t.DurationMinutes, Price = t.Price,
                 IsActive = !t.IsActive,
@@ -563,6 +587,7 @@ else
         public string Title { get; set; } = "";
         public string TestType { get; set; } = "";
         public string? Category { get; set; }
+        public string? Categories { get; set; }
         public string? Description { get; set; }
         public string? Icon { get; set; }
         public int DisplayOrder { get; set; }
@@ -584,6 +609,7 @@ else
         public string Title { get; set; } = "";
         public string TestType { get; set; } = "PsychometricFull";
         public string? Category { get; set; }
+        public string? Categories { get; set; }
         public string? Description { get; set; }
         public string? Icon { get; set; } = "📝";
         public int DisplayOrder { get; set; }

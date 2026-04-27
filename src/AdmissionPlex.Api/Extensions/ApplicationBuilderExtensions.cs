@@ -33,6 +33,8 @@ public static class ApplicationBuilderExtensions
                     ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""RequiresPayment"" boolean NOT NULL DEFAULT false;
                     ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""IsContinuityFlow"" boolean NOT NULL DEFAULT false;
                     ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""ParentTestCode"" text;
+                    ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""Categories"" text;
+                    ALTER TABLE test_section_questions ADD COLUMN IF NOT EXISTS ""TimeLimitSeconds"" integer;
                 ");
             }
             catch { /* columns may already exist */ }

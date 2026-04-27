@@ -9,7 +9,8 @@ public class Test : AuditableEntity
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public TestType TestType { get; set; }
-    public string? Category { get; set; } // "Interest", "Aptitude", "IQ"
+    public string? Category { get; set; } // comma-separated: "Interest,Aptitude,IQ"
+    public string? Categories { get; set; } // comma-separated: "FA,PA,MT,SA,NC"
     public string? Description { get; set; }
     public string? Icon { get; set; }
     public int DisplayOrder { get; set; }
