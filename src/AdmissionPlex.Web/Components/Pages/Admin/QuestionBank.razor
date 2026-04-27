@@ -128,20 +128,38 @@
     </div>
 </div>
 
-<!-- Filters -->
-<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+<!-- Filters + Search -->
+<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
     <button class="btn btn-sm @(filter=="All"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("All")'>All (@totalCount)</button>
     <button class="btn btn-sm @(filter=="StreamSelector"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("StreamSelector")'>Quiz (@quizCount)</button>
     <button class="btn btn-sm @(filter=="Interest"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Interest")'>Interest (@interestCount)</button>
     <button class="btn btn-sm @(filter=="Aptitude"?"btn-primary":"btn-outline")" @onclick='() => SetFilter("Aptitude")'>Aptitude (@aptitudeCount)</button>
+
+    <div style="flex:1; min-width:240px; display:flex; gap:6px; align-items:center; margin-left:auto;">
+        <input class="form-input" style="flex:1; max-width:340px;" placeholder="🔍 Search question text or category..."
+               value="@searchText" @oninput="OnSearchChanged" />
+        @if (!string.IsNullOrEmpty(searchText))
+        { <button class="btn btn-sm btn-outline" @onclick="ClearSearch">✕</button> }
+        <select class="form-input" style="width:90px;" @bind="pageSize" @bind:after="ResetPage">
+            <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+        </select>
+    </div>
 </div>
 
 <!-- Question list -->
 <div class="card" style="overflow:hidden; padding:0;">
-    @if (questions == null) { <div class="spinner"></div> }
-    else if (questions.Any())
+    @if (pageItems == null) { <div class="spinner"></div> }
+    else if (pageItems.Count == 0)
     {
-        @foreach (var q in questions.Take(100))
+        <div style="padding:48px; text-align:center; color:var(--ap-text-muted);">
+            @(filteredCount == 0 && totalCount == 0
+                ? "No questions. Import or seed sample data."
+                : "No questions match your search.")
+        </div>
+    }
+    else
+    {
+        @foreach (var q in pageItems)
         {
             <div style="display:flex; align-items:center; padding:10px 20px; border-bottom:1px solid var(--ap-border); gap:10px;">
                 <div style="flex:1;">
@@ -155,10 +173,26 @@
                 <button class="btn btn-sm btn-danger" style="font-size:10px; padding:3px 8px;" @onclick="() => Delete(q.Id)">Del</button>
             </div>
         }
-        @if (questions.Count > 100) { <div style="padding:12px; text-align:center; font-size:13px; color:var(--ap-text-muted);">Showing 100 of @questions.Count questions</div> }
     }
-    else { <div style="padding:48px; text-align:center; color:var(--ap-text-muted);">No questions. Import or seed sample data.</div> }
 </div>
+
+@* Pagination *@
+@if (pageItems != null && filteredCount > 0)
+{
+    var totalPages = Math.Max(1, (int)Math.Ceiling(filteredCount / (double)pageSize));
+    var fromIdx = (currentPage - 1) * pageSize + 1;
+    var toIdx = Math.Min(currentPage * pageSize, filteredCount);
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 4px; font-size:13px; flex-wrap:wrap; gap:10px;">
+        <div style="color:var(--ap-text-muted);">Showing @fromIdx–@toIdx of @filteredCount @(loadingPage ? "(loading…)" : "")</div>
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="btn btn-sm btn-outline" disabled="@(currentPage<=1 || loadingPage)" @onclick="() => GoToPage(1)">«</button>
+            <button class="btn btn-sm btn-outline" disabled="@(currentPage<=1 || loadingPage)" @onclick="() => GoToPage(currentPage - 1)">‹ Prev</button>
+            <span style="padding:0 8px;">Page <strong>@currentPage</strong> / @totalPages</span>
+            <button class="btn btn-sm btn-outline" disabled="@(currentPage>=totalPages || loadingPage)" @onclick="() => GoToPage(currentPage + 1)">Next ›</button>
+            <button class="btn btn-sm btn-outline" disabled="@(currentPage>=totalPages || loadingPage)" @onclick="() => GoToPage(totalPages)">»</button>
+        </div>
+    </div>
+}
 
 @* ═══════ Question Editor Dialog ═══════ *@
 @if (editing != null)
@@ -322,39 +356,130 @@
 }
 
 @code {
-    private List<QuestionDto>? questions;
+    private List<QuestionDto>? pageItems;
+    private int filteredCount;
     private string filter = "All";
-    private bool showImport, importing;
+    private string searchText = "";
+    private int currentPage = 1, pageSize = 25;
+    private bool showImport, importing, loadingPage;
     private string jsonInput = "", successMsg = "", errorMsg = "";
     private int totalCount, quizCount, interestCount, aptitudeCount;
     private Dictionary<string, int> iCounts = new(), aCounts = new();
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) { if (firstRender) { await Load(); StateHasChanged(); } }
+    private CancellationTokenSource? _searchCts;
+    private static readonly string[] InterestCodes = { "FA","PA","MT","ME","PI","SO","WN","RA","LU","OS" };
+    private static readonly string[] AptitudeCodes = { "SA","NC","MA","NA","VA","LA","SP" };
 
-    async Task SetFilter(string f) { filter = f; await Load(); StateHasChanged(); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadStats();
+            await LoadPage();
+            StateHasChanged();
+        }
+    }
 
-    async Task Load()
+    async Task SetFilter(string f)
+    {
+        if (filter == f) return;
+        filter = f;
+        currentPage = 1;
+        await LoadPage();
+    }
+
+    void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        DebouncedSearch();
+    }
+
+    async Task ClearSearch()
+    {
+        searchText = "";
+        currentPage = 1;
+        await LoadPage();
+    }
+
+    async Task ResetPage()
+    {
+        currentPage = 1;
+        await LoadPage();
+    }
+
+    async Task GoToPage(int p)
+    {
+        if (p < 1) p = 1;
+        if (p == currentPage) return;
+        currentPage = p;
+        await LoadPage();
+    }
+
+    void DebouncedSearch()
+    {
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(LoadPage);
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    async Task LoadStats()
     {
         try
         {
-            var all = (await Api.GetFromJsonAsync<ApiResponse<List<QuestionDto>>>("api/questions?activeOnly=true"))?.Data ?? new();
-            totalCount = all.Count;
-            quizCount = all.Count(q => q.SectionType == "StreamSelector");
-            interestCount = all.Count(q => q.SectionType == "Interest");
-            aptitudeCount = all.Count(q => q.SectionType == "Aptitude");
-
-            iCounts = new() { ["FA"]=0,["PA"]=0,["MT"]=0,["ME"]=0,["PI"]=0,["SO"]=0,["WN"]=0,["RA"]=0,["LU"]=0,["OS"]=0 };
-            aCounts = new() { ["SA"]=0,["NC"]=0,["MA"]=0,["NA"]=0,["VA"]=0,["LA"]=0,["SP"]=0 };
-            foreach (var q in all.Where(q => q.SectionType == "Interest" && !string.IsNullOrEmpty(q.InterestCategoryName)))
-            { var k = MapInterestCode(q.InterestCategoryName); if (iCounts.ContainsKey(k)) iCounts[k]++; }
-            foreach (var q in all.Where(q => q.SectionType == "Aptitude" && !string.IsNullOrEmpty(q.AptitudeCategoryName)))
-            { var k = MapAptitudeCode(q.AptitudeCategoryName); if (aCounts.ContainsKey(k)) aCounts[k]++; }
-
-            var url = filter == "All" ? "api/questions?activeOnly=true" : $"api/questions?sectionType={filter}&activeOnly=true";
-            questions = (await Api.GetFromJsonAsync<ApiResponse<List<QuestionDto>>>(url))?.Data ?? new();
+            var resp = await Api.GetFromJsonAsync<ApiResponse<StatsDto>>("api/questions/stats?activeOnly=true");
+            var s = resp?.Data;
+            if (s == null) return;
+            totalCount = s.Total;
+            quizCount = s.StreamSelector;
+            interestCount = s.Interest;
+            aptitudeCount = s.Aptitude;
+            iCounts = InterestCodes.ToDictionary(c => c, c => s.InterestByCode.TryGetValue(c, out var v) ? v : 0);
+            aCounts = AptitudeCodes.ToDictionary(c => c, c => s.AptitudeByCode.TryGetValue(c, out var v) ? v : 0);
         }
-        catch { questions = new(); }
+        catch { }
     }
+
+    async Task LoadPage()
+    {
+        loadingPage = true; StateHasChanged();
+        try
+        {
+            var url = $"api/questions/search?activeOnly=true&page={currentPage}&pageSize={pageSize}";
+            if (filter != "All") url += $"&sectionType={Uri.EscapeDataString(filter)}";
+            if (!string.IsNullOrWhiteSpace(searchText)) url += $"&search={Uri.EscapeDataString(searchText.Trim())}";
+            var resp = await Api.GetFromJsonAsync<ApiResponse<PagedResultDto<QuestionDto>>>(url);
+            var data = resp?.Data;
+            pageItems = data?.Items ?? new List<QuestionDto>();
+            filteredCount = data?.TotalCount ?? 0;
+
+            var totalPages = Math.Max(1, (int)Math.Ceiling(filteredCount / (double)pageSize));
+            if (currentPage > totalPages)
+            {
+                currentPage = totalPages;
+                if (filteredCount > 0)
+                {
+                    loadingPage = false;
+                    await LoadPage();
+                    return;
+                }
+            }
+        }
+        catch { pageItems = new(); filteredCount = 0; }
+        finally { loadingPage = false; StateHasChanged(); }
+    }
+
+    async Task ReloadAll() { await LoadStats(); await LoadPage(); }
 
     async Task ImportJson()
     {
@@ -367,7 +492,7 @@
             {
                 var r = await resp.Content.ReadFromJsonAsync<ApiResponse<ImportRes>>();
                 successMsg = $"Imported {r?.Data?.QuestionsCreated ?? 0} questions ({r?.Data?.QuestionsSkipped ?? 0} skipped). Total: {r?.Data?.TotalInBank ?? 0}";
-                jsonInput = ""; showImport = false; await Load();
+                jsonInput = ""; showImport = false; await ReloadAll();
             }
             else errorMsg = "Import failed. Check format.";
         }
@@ -395,14 +520,14 @@
         try
         {
             var resp = await Api.PostAsJsonAsync("api/import/seed-sample-data", new { });
-            if (resp.IsSuccessStatusCode) { successMsg = "Sample data loaded."; showImport = false; await Load(); }
+            if (resp.IsSuccessStatusCode) { successMsg = "Sample data loaded."; showImport = false; await ReloadAll(); }
             else errorMsg = "Failed — data may already exist.";
         }
         catch (Exception ex) { errorMsg = ex.Message; }
         importing = false; StateHasChanged();
     }
 
-    async Task Delete(long id) { await Api.DeleteAsync($"api/questions/{id}"); await Load(); StateHasChanged(); }
+    async Task Delete(long id) { await Api.DeleteAsync($"api/questions/{id}"); await ReloadAll(); StateHasChanged(); }
 
     string TypeBadge(string t) => t switch { "StreamSelector" => "badge-green", "Interest" => "badge-coral", "Aptitude" => "badge-sky", _ => "badge-primary" };
     string MapInterestCode(string? n) => n switch { "Fine Arts"=>"FA","Performing Arts"=>"PA","Machines & Tools"=>"MT","Methodical"=>"ME","People Interaction"=>"PI","Social"=>"SO","Working With Numbers"=>"WN","Research & Analysis"=>"RA","Language Usage"=>"LU","Outdoor & Sports"=>"OS",_=>"" };
@@ -587,7 +712,7 @@
             {
                 successMsg = editing.Id > 0 ? "Question updated." : "Question created.";
                 CloseDialog();
-                await Load();
+                await ReloadAll();
             }
             else
             {
@@ -627,4 +752,22 @@
 
     class CategoryDto { public long Id { get; set; } public string Code { get; set; } = ""; public string Name { get; set; } = ""; }
     class UploadResultDto { public string Url { get; set; } = ""; public string AbsoluteUrl { get; set; } = ""; public string FileName { get; set; } = ""; public long Size { get; set; } }
+
+    class StatsDto
+    {
+        public int Total { get; set; }
+        public int StreamSelector { get; set; }
+        public int Interest { get; set; }
+        public int Aptitude { get; set; }
+        public Dictionary<string, int> InterestByCode { get; set; } = new();
+        public Dictionary<string, int> AptitudeByCode { get; set; } = new();
+    }
+
+    class PagedResultDto<T>
+    {
+        public List<T> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+    }
 }

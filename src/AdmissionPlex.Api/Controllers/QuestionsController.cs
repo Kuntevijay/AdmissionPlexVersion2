@@ -44,6 +44,39 @@ public class QuestionsController : ControllerBase
         return Ok(ApiResponse<List<QuestionDto>>.Ok(dtos));
     }
 
+    [HttpGet("search")]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? search = null,
+        [FromQuery] string? sectionType = null,
+        [FromQuery] long? interestCategoryId = null,
+        [FromQuery] long? aptitudeCategoryId = null,
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25)
+    {
+        SectionType? st = null;
+        if (!string.IsNullOrEmpty(sectionType) && Enum.TryParse<SectionType>(sectionType, true, out var parsed))
+            st = parsed;
+
+        var (items, totalCount) = await _uow.Questions.SearchAsync(
+            search, st, interestCategoryId, aptitudeCategoryId, activeOnly, page, pageSize);
+
+        return Ok(ApiResponse<PagedResult<QuestionDto>>.Ok(new PagedResult<QuestionDto>
+        {
+            Items = items.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            Page = page < 1 ? 1 : page,
+            PageSize = pageSize < 1 ? 25 : pageSize
+        }));
+    }
+
+    [HttpGet("stats")]
+    public async Task<IActionResult> Stats([FromQuery] bool activeOnly = true)
+    {
+        var stats = await _uow.Questions.GetStatsAsync(activeOnly);
+        return Ok(ApiResponse<QuestionStats>.Ok(stats));
+    }
+
     [HttpGet("{id:long}")]
     public async Task<IActionResult> GetById(long id)
     {
