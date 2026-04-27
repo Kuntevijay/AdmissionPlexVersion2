@@ -23,8 +23,9 @@ public class UploadsController : ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpPost("image")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxBytes)]
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string folder = "questions")
+    public async Task<IActionResult> UploadImage(IFormFile file, [FromForm] string folder = "questions")
     {
         if (file == null || file.Length == 0)
             return BadRequest(ApiResponse<object>.Fail("No file uploaded."));
