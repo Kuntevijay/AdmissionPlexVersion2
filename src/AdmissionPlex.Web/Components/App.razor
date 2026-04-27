@@ -28,5 +28,33 @@
 <body>
     <Routes @rendermode="RenderMode.InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
+
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        window.initGoogleSignIn = function (clientId, dotnetRef) {
+            if (typeof google === 'undefined' || !google.accounts) {
+                // Script not loaded yet, retry in 500ms
+                setTimeout(function () { window.initGoogleSignIn(clientId, dotnetRef); }, 500);
+                return;
+            }
+            google.accounts.id.initialize({
+                client_id: clientId,
+                callback: function (response) {
+                    dotnetRef.invokeMethodAsync('HandleGoogleResponse', response.credential);
+                }
+            });
+            var btnEl = document.getElementById('google-signin-btn');
+            if (btnEl) {
+                google.accounts.id.renderButton(btnEl, {
+                    theme: 'outline',
+                    size: 'large',
+                    width: 340,
+                    text: 'signin_with',
+                    shape: 'rectangular'
+                });
+            }
+        };
+    </script>
 </body>
 </html>

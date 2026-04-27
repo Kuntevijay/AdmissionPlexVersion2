@@ -119,6 +119,15 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICCavenueService, CCavenueService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IReferralService, ReferralService>();
+
+        // Settings & Notifications
+        services.AddScoped<IAppSettingService, AppSettingService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<GoogleAuthService>();
+
+        // HttpClientFactory for external API calls (SMS, WhatsApp, Push, Google)
+        services.AddHttpClient();
+
         return services;
     }
 }

@@ -22,13 +22,8 @@ public static class ApplicationBuilderExtensions
 
         try
         {
-            if (app.Environment.IsDevelopment())
-            {
-                // EnsureCreated creates all tables from the DbContext model
-                // without needing migration files. For production, switch to MigrateAsync.
-                await context.Database.EnsureCreatedAsync();
-                logger.LogInformation("Database ensured created.");
-            }
+            await context.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied.");
 
             await DbSeeder.SeedAsync(context);
             await DbSeeder.SeedRolesAndAdminAsync(services);

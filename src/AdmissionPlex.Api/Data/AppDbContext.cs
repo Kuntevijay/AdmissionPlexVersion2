@@ -11,6 +11,8 @@ using AdmissionPlex.Core.Entities.Payments;
 using AdmissionPlex.Core.Entities.Content;
 using AdmissionPlex.Core.Entities.Notifications;
 
+using AdmissionPlex.Core.Entities.Settings;
+
 namespace AdmissionPlex.Api.Data;
 
 public class AppDbContext : IdentityDbContext<AppUser, AppRole, long>
@@ -72,6 +74,11 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, long>
 
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
+
+    // Settings & Notification System
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+    public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

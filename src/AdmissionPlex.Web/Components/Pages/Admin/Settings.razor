@@ -1,0 +1,576 @@
+@page "/admin/settings"
+@layout AdminLayout
+@inject ApiClient Api
+
+<PageTitle>Settings - Admin</PageTitle>
+
+<div class="topbar"><div><h2>Settings</h2><p class="topbar-subtitle">Notification providers, Google login, and templates</p></div></div>
+
+@if (loading)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <!-- Tab Navigation -->
+    <div style="display:flex; gap:4px; margin-bottom:24px; border-bottom:2px solid var(--ap-border); padding-bottom:0;">
+        @foreach (var tab in tabs)
+        {
+            var isActive = activeTab == tab.Key;
+            <button style="padding:10px 20px; font-size:13px; font-weight:@(isActive ? "700" : "500");
+                    color:@(isActive ? "var(--ap-primary)" : "var(--ap-text-muted)");
+                    border:none; background:none; cursor:pointer; position:relative;
+                    border-bottom:2px solid @(isActive ? "var(--ap-primary)" : "transparent");
+                    margin-bottom:-2px; transition:all 0.2s;"
+                    @onclick="() => activeTab = tab.Key">
+                @tab.Icon @tab.Label
+            </button>
+        }
+    </div>
+
+    <!-- ═══ SMTP Settings ═══ -->
+    @if (activeTab == "smtp")
+    {
+        <div class="card" style="max-width:640px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:18px; font-weight:700; margin:0;">📧 Email (SMTP)</h3>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                    <input type="checkbox" @bind="smtpEnabled" style="accent-color:var(--ap-primary);" />
+                    @(smtpEnabled ? "Enabled" : "Disabled")
+                </label>
+            </div>
+            <div class="form-group"><label class="form-label">SMTP Host</label><input class="form-input" @bind="smtp_Host" placeholder="smtp.gmail.com" /></div>
+            <div class="grid-2">
+                <div class="form-group"><label class="form-label">Port</label><input class="form-input" @bind="smtp_Port" placeholder="587" /></div>
+                <div class="form-group"><label class="form-label">Enable SSL</label>
+                    <select class="form-input" @bind="smtp_EnableSsl"><option value="true">Yes</option><option value="false">No</option></select>
+                </div>
+            </div>
+            <div class="form-group"><label class="form-label">Username</label><input class="form-input" @bind="smtp_Username" /></div>
+            <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" @bind="smtp_Password" /></div>
+            <div class="grid-2">
+                <div class="form-group"><label class="form-label">From Email</label><input class="form-input" @bind="smtp_FromEmail" /></div>
+                <div class="form-group"><label class="form-label">From Name</label><input class="form-input" @bind="smtp_FromName" placeholder="AdmissionPlex" /></div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-primary" @onclick='() => SaveCategory("smtp")' disabled="@saving">@(saving ? "Saving..." : "Save SMTP Settings")</button>
+                <button class="btn btn-outline btn-sm" @onclick='() => SendTest("email", smtp_FromEmail)' disabled="@testing">@(testing ? "Sending..." : "📤 Send Test Email")</button>
+            </div>
+        </div>
+    }
+
+    <!-- ═══ SMS Settings ═══ -->
+    @if (activeTab == "sms")
+    {
+        <div class="card" style="max-width:640px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:18px; font-weight:700; margin:0;">📱 SMS</h3>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                    <input type="checkbox" @bind="smsEnabled" style="accent-color:var(--ap-primary);" />
+                    @(smsEnabled ? "Enabled" : "Disabled")
+                </label>
+            </div>
+            <div class="form-group"><label class="form-label">Provider</label>
+                <select class="form-input" @bind="sms_Provider">
+                    <option value="msg91">MSG91</option><option value="twilio">Twilio</option><option value="textlocal">TextLocal</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">API Key / Auth Key</label><input class="form-input" type="password" @bind="sms_ApiKey" /></div>
+            <div class="grid-2">
+                <div class="form-group"><label class="form-label">Sender ID</label><input class="form-input" @bind="sms_SenderId" placeholder="ADMPLX" /></div>
+                <div class="form-group"><label class="form-label">Template ID (MSG91)</label><input class="form-input" @bind="sms_TemplateId" /></div>
+            </div>
+            @if (sms_Provider == "twilio")
+            {
+                <div class="grid-2">
+                    <div class="form-group"><label class="form-label">Account SID</label><input class="form-input" @bind="sms_AccountSid" /></div>
+                    <div class="form-group"><label class="form-label">From Number</label><input class="form-input" @bind="sms_FromNumber" placeholder="+1234567890" /></div>
+                </div>
+            }
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-primary" @onclick='() => SaveCategory("sms")' disabled="@saving">@(saving ? "Saving..." : "Save SMS Settings")</button>
+                <button class="btn btn-outline btn-sm" @onclick='() => ShowTestDialog("sms")' disabled="@testing">📤 Send Test SMS</button>
+            </div>
+        </div>
+    }
+
+    <!-- ═══ WhatsApp Settings ═══ -->
+    @if (activeTab == "whatsapp")
+    {
+        <div class="card" style="max-width:640px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:18px; font-weight:700; margin:0;">💬 WhatsApp</h3>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                    <input type="checkbox" @bind="waEnabled" style="accent-color:var(--ap-primary);" />
+                    @(waEnabled ? "Enabled" : "Disabled")
+                </label>
+            </div>
+            <div class="form-group"><label class="form-label">Provider</label>
+                <select class="form-input" @bind="wa_Provider">
+                    <option value="meta">Meta Cloud API (Official)</option><option value="interakt">Interakt</option><option value="wati">Wati</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">API Token / Access Token</label><input class="form-input" type="password" @bind="wa_ApiKey" /></div>
+            @if (wa_Provider == "meta")
+            {
+                <div class="form-group"><label class="form-label">Phone Number ID</label><input class="form-input" @bind="wa_PhoneNumberId" /></div>
+            }
+            @if (wa_Provider == "wati")
+            {
+                <div class="form-group"><label class="form-label">Base URL</label><input class="form-input" @bind="wa_BaseUrl" placeholder="https://live-server.wati.io" /></div>
+            }
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-primary" @onclick='() => SaveCategory("whatsapp")' disabled="@saving">@(saving ? "Saving..." : "Save WhatsApp Settings")</button>
+                <button class="btn btn-outline btn-sm" @onclick='() => ShowTestDialog("whatsapp")' disabled="@testing">📤 Send Test Message</button>
+            </div>
+        </div>
+    }
+
+    <!-- ═══ Push Notification Settings ═══ -->
+    @if (activeTab == "push")
+    {
+        <div class="card" style="max-width:640px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:18px; font-weight:700; margin:0;">🔔 Push Notifications (Firebase)</h3>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                    <input type="checkbox" @bind="pushEnabled" style="accent-color:var(--ap-primary);" />
+                    @(pushEnabled ? "Enabled" : "Disabled")
+                </label>
+            </div>
+            <div class="form-group"><label class="form-label">Firebase Server Key</label><input class="form-input" type="password" @bind="push_ServerKey" /></div>
+            <div class="form-group"><label class="form-label">Firebase Project ID</label><input class="form-input" @bind="push_ProjectId" /></div>
+            <p style="font-size:12px; color:var(--ap-text-muted); line-height:1.6; margin-top:8px;">
+                Get these from Firebase Console → Project Settings → Cloud Messaging. Use the "Server key" under Cloud Messaging API (Legacy).
+            </p>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-primary" @onclick='() => SaveCategory("push")' disabled="@saving">@(saving ? "Saving..." : "Save Push Settings")</button>
+            </div>
+        </div>
+    }
+
+    <!-- ═══ Google Auth Settings ═══ -->
+    @if (activeTab == "google_auth")
+    {
+        <div class="card" style="max-width:640px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:18px; font-weight:700; margin:0;">🔑 Google Sign-In</h3>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                    <input type="checkbox" @bind="googleEnabled" style="accent-color:var(--ap-primary);" />
+                    @(googleEnabled ? "Enabled" : "Disabled")
+                </label>
+            </div>
+            <div class="form-group"><label class="form-label">Google OAuth Client ID</label><input class="form-input" @bind="google_ClientId" placeholder="xxxx.apps.googleusercontent.com" /></div>
+            <div class="form-group"><label class="form-label">Client Secret (reference only)</label><input class="form-input" type="password" @bind="google_ClientSecret" /></div>
+            <div class="form-group"><label class="form-label">Auto-register new users</label>
+                <select class="form-input" @bind="google_AutoRegister">
+                    <option value="true">Yes — Create student account on first Google login</option>
+                    <option value="false">No — Only allow existing users to sign in with Google</option>
+                </select>
+            </div>
+            <p style="font-size:12px; color:var(--ap-text-muted); line-height:1.6; margin-top:8px;">
+                Create OAuth credentials at <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--ap-primary);">Google Cloud Console</a>.
+                Add your site URL as an Authorized JavaScript origin, and add the redirect URI.
+            </p>
+            <button class="btn btn-primary" style="margin-top:16px;" @onclick='() => SaveCategory("google_auth")' disabled="@saving">
+                @(saving ? "Saving..." : "Save Google Auth Settings")
+            </button>
+        </div>
+    }
+
+    <!-- ═══ Templates ═══ -->
+    @if (activeTab == "templates")
+    {
+        <div class="card" style="padding:0; overflow:hidden;">
+            <div class="card-header" style="padding:18px 24px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Notification Templates</h3>
+                <button class="btn btn-primary btn-sm" @onclick="NewTemplate">+ New Template</button>
+            </div>
+            @if (templates.Any())
+            {
+                <table class="data-table">
+                    <thead><tr><th>Code</th><th>Name</th><th>Channel</th><th>Subject / Title</th><th>Active</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var t in templates)
+                        {
+                            <tr>
+                                <td><code style="font-size:12px;">@t.Code</code></td>
+                                <td style="font-weight:600;">@t.Name</td>
+                                <td><span class="badge @GetChannelBadge(t.Channel)">@t.Channel</span></td>
+                                <td style="font-size:13px; color:var(--ap-text-muted);">@(t.Subject ?? t.PushTitle ?? "—")</td>
+                                <td>@(t.IsActive ? "✅" : "—")</td>
+                                <td><button class="btn btn-outline btn-sm" @onclick="() => EditTemplate(t.Id)">Edit</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div style="padding:40px; text-align:center; color:var(--ap-text-muted);">No templates yet. Restart the server to seed defaults.</div>
+            }
+        </div>
+
+        <!-- Template Edit Modal -->
+        @if (editingTemplate != null)
+        {
+            <div style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;"
+                 @onclick="() => editingTemplate = null">
+                <div class="card" style="width:100%; max-width:700px; max-height:85vh; overflow-y:auto;" @onclick:stopPropagation>
+                    <h3 style="font-size:18px; font-weight:700; margin-bottom:20px;">@(editingTemplate.Id > 0 ? "Edit Template" : "New Template")</h3>
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label">Code</label><input class="form-input" @bind="editingTemplate.Code" placeholder="e.g. welcome" /></div>
+                        <div class="form-group"><label class="form-label">Channel</label>
+                            <select class="form-input" @bind="editingTemplate.Channel">
+                                <option value="email">Email</option><option value="sms">SMS</option>
+                                <option value="whatsapp">WhatsApp</option><option value="push">Push</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label class="form-label">Name</label><input class="form-input" @bind="editingTemplate.Name" /></div>
+                    @if (editingTemplate.Channel == "email")
+                    {
+                        <div class="form-group"><label class="form-label">Subject</label><input class="form-input" @bind="editingTemplate.Subject" /></div>
+                        <div class="form-group"><label class="form-label">Body HTML</label><textarea class="form-input" rows="8" @bind="editingTemplate.BodyHtml"></textarea></div>
+                    }
+                    @if (editingTemplate.Channel == "push")
+                    {
+                        <div class="form-group"><label class="form-label">Push Title</label><input class="form-input" @bind="editingTemplate.PushTitle" /></div>
+                        <div class="form-group"><label class="form-label">Action URL</label><input class="form-input" @bind="editingTemplate.ActionUrl" /></div>
+                    }
+                    <div class="form-group"><label class="form-label">Body Text (SMS/Push/WhatsApp)</label><textarea class="form-input" rows="3" @bind="editingTemplate.BodyText"></textarea></div>
+                    @if (editingTemplate.Channel == "whatsapp")
+                    {
+                        <div class="form-group"><label class="form-label">WhatsApp Template Name</label><input class="form-input" @bind="editingTemplate.WhatsAppTemplateName" /></div>
+                    }
+                    <div class="form-group"><label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                        <input type="checkbox" @bind="editingTemplate.IsActive" style="accent-color:var(--ap-primary);" /> Active
+                    </label></div>
+                    <p style="font-size:12px; color:var(--ap-text-muted); margin-bottom:16px;">
+                        Placeholders: <code>{<!-- -->{StudentName}}</code>, <code>{<!-- -->{TestName}}</code>, <code>{<!-- -->{Amount}}</code>,
+                        <code>{<!-- -->{OrderId}}</code>, <code>{<!-- -->{SiteUrl}}</code>, <code>{<!-- -->{CompletedCount}}</code>,
+                        <code>{<!-- -->{TotalCount}}</code>, <code>{<!-- -->{ReportUrl}}</code>
+                    </p>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-primary" @onclick="SaveTemplate" disabled="@saving">@(saving ? "Saving..." : "Save Template")</button>
+                        <button class="btn btn-outline" @onclick="() => editingTemplate = null">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- ═══ Logs ═══ -->
+    @if (activeTab == "logs")
+    {
+        <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex; gap:12px; align-items:end;">
+                <div class="form-group" style="margin:0;"><label class="form-label">Channel</label>
+                    <select class="form-input" @bind="logFilterChannel" style="width:140px;">
+                        <option value="">All</option><option value="email">Email</option><option value="sms">SMS</option>
+                        <option value="whatsapp">WhatsApp</option><option value="push">Push</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;"><label class="form-label">Status</label>
+                    <select class="form-input" @bind="logFilterStatus" style="width:120px;">
+                        <option value="">All</option><option value="Sent">Sent</option><option value="Failed">Failed</option><option value="Queued">Queued</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-sm" @onclick="LoadLogs">Filter</button>
+            </div>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+            @if (logs.Any())
+            {
+                <table class="data-table">
+                    <thead><tr><th>Channel</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Error</th><th>Sent At</th></tr></thead>
+                    <tbody>
+                        @foreach (var l in logs)
+                        {
+                            <tr>
+                                <td><span class="badge @GetChannelBadge(l.Channel)">@l.Channel</span></td>
+                                <td style="font-size:13px;">@l.Recipient</td>
+                                <td style="font-size:13px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">@(l.Subject ?? l.BodyPreview ?? "—")</td>
+                                <td><span class="badge @(l.Status == "Sent" ? "badge-green" : l.Status == "Failed" ? "badge-coral" : "badge-gold")">@l.Status</span></td>
+                                <td style="font-size:12px; color:var(--ap-red); max-width:200px; overflow:hidden; text-overflow:ellipsis;">@(l.ErrorMessage ?? "")</td>
+                                <td style="font-size:12px; color:var(--ap-text-muted);">@(l.SentAt?.ToString("dd MMM, HH:mm") ?? l.CreatedAt.ToString("dd MMM, HH:mm"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (logTotal > logPageSize)
+                {
+                    <div style="padding:12px 24px; text-align:center;">
+                        <button class="btn btn-outline btn-sm" @onclick="LoadMoreLogs" disabled="@(logs.Count >= logTotal)">Load More (@logs.Count / @logTotal)</button>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="padding:40px; text-align:center; color:var(--ap-text-muted);">No logs found.</div>
+            }
+        </div>
+    }
+
+    <!-- ═══ Status Message ═══ -->
+    @if (!string.IsNullOrEmpty(statusMsg))
+    {
+        <div style="position:fixed; bottom:24px; right:24px; padding:14px 24px; border-radius:10px; font-size:14px; font-weight:600; z-index:1001;
+                    background:@(statusIsError ? "rgba(239,68,68,0.12)" : "rgba(34,197,94,0.12)");
+                    color:@(statusIsError ? "var(--ap-red)" : "var(--ap-green)");">
+            @statusMsg
+        </div>
+    }
+
+    <!-- ═══ Test Dialog ═══ -->
+    @if (showTestDialog)
+    {
+        <div style="position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; display:flex; align-items:center; justify-content:center;"
+             @onclick="() => showTestDialog = false">
+            <div class="card" style="width:360px;" @onclick:stopPropagation>
+                <h3 style="margin-bottom:16px;">Send Test @testDialogChannel</h3>
+                <div class="form-group"><label class="form-label">Recipient</label><input class="form-input" @bind="testRecipient" placeholder="@(testDialogChannel == "sms" ? "9876543210" : "email@example.com")" /></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary" @onclick="ExecuteTest" disabled="@testing">@(testing ? "Sending..." : "Send")</button>
+                    <button class="btn btn-outline" @onclick="() => showTestDialog = false">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    // ─── State ───
+    private bool loading = true, saving = false, testing = false;
+    private string activeTab = "smtp";
+    private string statusMsg = "", testRecipient = "";
+    private bool statusIsError = false, showTestDialog = false;
+    private string testDialogChannel = "";
+
+    // Tab definitions
+    private readonly (string Key, string Icon, string Label)[] tabs = new[]
+    {
+        ("smtp", "📧", "Email (SMTP)"),
+        ("sms", "📱", "SMS"),
+        ("whatsapp", "💬", "WhatsApp"),
+        ("push", "🔔", "Push"),
+        ("google_auth", "🔑", "Google Auth"),
+        ("templates", "📋", "Templates"),
+        ("logs", "📜", "Logs")
+    };
+
+    // ─── SMTP fields ───
+    private bool smtpEnabled; private string smtp_Host = "", smtp_Port = "587", smtp_Username = "", smtp_Password = "", smtp_FromEmail = "", smtp_FromName = "AdmissionPlex", smtp_EnableSsl = "true";
+
+    // ─── SMS fields ───
+    private bool smsEnabled; private string sms_Provider = "msg91", sms_ApiKey = "", sms_SenderId = "ADMPLX", sms_TemplateId = "", sms_AccountSid = "", sms_FromNumber = "";
+
+    // ─── WhatsApp fields ───
+    private bool waEnabled; private string wa_Provider = "meta", wa_ApiKey = "", wa_PhoneNumberId = "", wa_BaseUrl = "";
+
+    // ─── Push fields ───
+    private bool pushEnabled; private string push_ServerKey = "", push_ProjectId = "";
+
+    // ─── Google Auth fields ───
+    private bool googleEnabled; private string google_ClientId = "", google_ClientSecret = "", google_AutoRegister = "true";
+
+    // ─── Templates ───
+    private List<TemplateRow> templates = new();
+    private TemplateEdit? editingTemplate;
+
+    // ─── Logs ───
+    private List<LogRow> logs = new();
+    private string logFilterChannel = "", logFilterStatus = "";
+    private int logPage = 1, logPageSize = 20, logTotal = 0;
+
+    // ─── Init ───
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadSettings("smtp", v => { smtp_Host = G(v,"Host"); smtp_Port = G(v,"Port","587"); smtp_Username = G(v,"Username"); smtp_Password = G(v,"Password"); smtp_FromEmail = G(v,"FromEmail"); smtp_FromName = G(v,"FromName","AdmissionPlex"); smtp_EnableSsl = G(v,"EnableSsl","true"); });
+            await LoadSettings("sms", v => { sms_Provider = G(v,"Provider","msg91"); sms_ApiKey = G(v,"ApiKey"); sms_SenderId = G(v,"SenderId","ADMPLX"); sms_TemplateId = G(v,"TemplateId"); sms_AccountSid = G(v,"AccountSid"); sms_FromNumber = G(v,"FromNumber"); });
+            await LoadSettings("whatsapp", v => { wa_Provider = G(v,"Provider","meta"); wa_ApiKey = G(v,"ApiKey"); wa_PhoneNumberId = G(v,"PhoneNumberId"); wa_BaseUrl = G(v,"BaseUrl"); });
+            await LoadSettings("push", v => { push_ServerKey = G(v,"ServerKey"); push_ProjectId = G(v,"ProjectId"); });
+            await LoadSettings("google_auth", v => { google_ClientId = G(v,"ClientId"); google_ClientSecret = G(v,"ClientSecret"); google_AutoRegister = G(v,"AutoRegister","true"); });
+
+            await LoadEnabledFlags();
+            await LoadTemplates();
+            await LoadLogs();
+        }
+        catch (Exception ex) { ShowStatus($"Error loading settings: {ex.Message}", true); }
+        finally { loading = false; }
+    }
+
+    private async Task LoadSettings(string category, Action<Dictionary<string, string>> apply)
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<SettingsApiResponse>($"api/settings/{category}");
+            if (resp?.Data?.Settings != null)
+            {
+                var dict = new Dictionary<string, string>();
+                foreach (var s in resp.Data.Settings) dict[s.Key] = s.Value;
+                apply(dict);
+            }
+        }
+        catch { }
+    }
+
+    private async Task LoadEnabledFlags()
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<AllSettingsResponse>("api/settings");
+            if (resp?.Data?.Categories != null)
+            {
+                foreach (var c in resp.Data.Categories)
+                {
+                    switch (c.Category) {
+                        case "smtp": smtpEnabled = c.IsEnabled; break;
+                        case "sms": smsEnabled = c.IsEnabled; break;
+                        case "whatsapp": waEnabled = c.IsEnabled; break;
+                        case "push": pushEnabled = c.IsEnabled; break;
+                        case "google_auth": googleEnabled = c.IsEnabled; break;
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private async Task SaveCategory(string category)
+    {
+        saving = true; StateHasChanged();
+        try
+        {
+            var settings = category switch
+            {
+                "smtp" => new Dictionary<string, string> { ["Host"] = smtp_Host, ["Port"] = smtp_Port, ["Username"] = smtp_Username, ["Password"] = smtp_Password, ["FromEmail"] = smtp_FromEmail, ["FromName"] = smtp_FromName, ["EnableSsl"] = smtp_EnableSsl },
+                "sms" => new Dictionary<string, string> { ["Provider"] = sms_Provider, ["ApiKey"] = sms_ApiKey, ["SenderId"] = sms_SenderId, ["TemplateId"] = sms_TemplateId, ["AccountSid"] = sms_AccountSid, ["FromNumber"] = sms_FromNumber },
+                "whatsapp" => new Dictionary<string, string> { ["Provider"] = wa_Provider, ["ApiKey"] = wa_ApiKey, ["PhoneNumberId"] = wa_PhoneNumberId, ["BaseUrl"] = wa_BaseUrl },
+                "push" => new Dictionary<string, string> { ["ServerKey"] = push_ServerKey, ["ProjectId"] = push_ProjectId },
+                "google_auth" => new Dictionary<string, string> { ["ClientId"] = google_ClientId, ["ClientSecret"] = google_ClientSecret, ["AutoRegister"] = google_AutoRegister },
+                _ => new Dictionary<string, string>()
+            };
+
+            var enabled = category switch { "smtp" => smtpEnabled, "sms" => smsEnabled, "whatsapp" => waEnabled, "push" => pushEnabled, "google_auth" => googleEnabled, _ => true };
+
+            var resp = await Api.PutAsJsonAsync($"api/settings/{category}", new { settings, isEnabled = enabled });
+            ShowStatus(resp.IsSuccessStatusCode ? $"{category} settings saved!" : "Failed to save.", !resp.IsSuccessStatusCode);
+        }
+        catch (Exception ex) { ShowStatus($"Error: {ex.Message}", true); }
+        finally { saving = false; StateHasChanged(); }
+    }
+
+    // ─── Templates ───
+    private async Task LoadTemplates()
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<TemplateListResponse>("api/settings/templates");
+            templates = resp?.Data ?? new();
+        }
+        catch { }
+    }
+
+    private void NewTemplate()
+    {
+        editingTemplate = new TemplateEdit { Channel = "email", IsActive = true };
+    }
+
+    private async Task EditTemplate(long id)
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<TemplateDetailResponse>($"api/settings/templates/{id}");
+            if (resp?.Data != null)
+                editingTemplate = new TemplateEdit
+                {
+                    Id = resp.Data.Id, Code = resp.Data.Code, Name = resp.Data.Name, Channel = resp.Data.Channel,
+                    Subject = resp.Data.Subject, BodyHtml = resp.Data.BodyHtml, BodyText = resp.Data.BodyText,
+                    WhatsAppTemplateName = resp.Data.WhatsAppTemplateName, PushTitle = resp.Data.PushTitle,
+                    ActionUrl = resp.Data.ActionUrl, PushImageUrl = resp.Data.PushImageUrl, IsActive = resp.Data.IsActive
+                };
+        }
+        catch (Exception ex) { ShowStatus($"Error: {ex.Message}", true); }
+    }
+
+    private async Task SaveTemplate()
+    {
+        if (editingTemplate == null) return;
+        saving = true; StateHasChanged();
+        try
+        {
+            var resp = await Api.PostAsJsonAsync("api/settings/templates", editingTemplate);
+            if (resp.IsSuccessStatusCode)
+            {
+                ShowStatus("Template saved!", false);
+                editingTemplate = null;
+                await LoadTemplates();
+            }
+            else ShowStatus("Failed to save template.", true);
+        }
+        catch (Exception ex) { ShowStatus($"Error: {ex.Message}", true); }
+        finally { saving = false; StateHasChanged(); }
+    }
+
+    // ─── Logs ───
+    private async Task LoadLogs()
+    {
+        try
+        {
+            var url = $"api/settings/logs?page={logPage}&pageSize={logPageSize}";
+            if (!string.IsNullOrEmpty(logFilterChannel)) url += $"&channel={logFilterChannel}";
+            if (!string.IsNullOrEmpty(logFilterStatus)) url += $"&status={logFilterStatus}";
+            var resp = await Api.GetFromJsonAsync<LogListResponse>(url);
+            if (resp?.Data != null) { logs = resp.Data.Logs ?? new(); logTotal = resp.Data.Total; }
+        }
+        catch { }
+    }
+
+    private async Task LoadMoreLogs() { logPage++; await LoadLogs(); }
+
+    // ─── Test Notifications ───
+    private void ShowTestDialog(string channel) { testDialogChannel = channel; testRecipient = ""; showTestDialog = true; }
+    private async Task ExecuteTest() { showTestDialog = false; await SendTest(testDialogChannel, testRecipient); }
+
+    private async Task SendTest(string channel, string recipient)
+    {
+        if (string.IsNullOrWhiteSpace(recipient)) { ShowStatus("Enter a recipient.", true); return; }
+        testing = true; StateHasChanged();
+        try
+        {
+            var resp = await Api.PostAsJsonAsync("api/settings/test", new { channel, recipient });
+            var content = await resp.Content.ReadAsStringAsync();
+            ShowStatus(resp.IsSuccessStatusCode ? $"Test {channel} sent!" : $"Failed: {content}", !resp.IsSuccessStatusCode);
+            await LoadLogs();
+        }
+        catch (Exception ex) { ShowStatus($"Error: {ex.Message}", true); }
+        finally { testing = false; StateHasChanged(); }
+    }
+
+    // ─── Helpers ───
+    private static string G(Dictionary<string, string> d, string key, string def = "") => d.GetValueOrDefault(key, def) ?? def;
+    private string GetChannelBadge(string ch) => ch switch { "email" => "badge-sky", "sms" => "badge-green", "whatsapp" => "badge-green", "push" => "badge-gold", _ => "" };
+
+    private void ShowStatus(string msg, bool isError)
+    {
+        statusMsg = msg; statusIsError = isError; StateHasChanged();
+        _ = Task.Delay(4000).ContinueWith(_ => { statusMsg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ─── Response models ───
+    private class SettingsApiResponse { public bool Success { get; set; } public CategoryData? Data { get; set; } }
+    private class CategoryData { public string Category { get; set; } = ""; public bool IsEnabled { get; set; } public List<SettingItem> Settings { get; set; } = new(); }
+    private class SettingItem { public string Key { get; set; } = ""; public string Value { get; set; } = ""; public bool IsSensitive { get; set; } public bool IsEnabled { get; set; } }
+    private class AllSettingsResponse { public bool Success { get; set; } public AllData? Data { get; set; } }
+    private class AllData { public Dictionary<string, Dictionary<string, string>>? Settings { get; set; } public List<CategoryStatus>? Categories { get; set; } }
+    private class CategoryStatus { public string Category { get; set; } = ""; public bool IsEnabled { get; set; } }
+    private class TemplateListResponse { public bool Success { get; set; } public List<TemplateRow>? Data { get; set; } }
+    private class TemplateRow { public long Id { get; set; } public string Code { get; set; } = ""; public string Name { get; set; } = ""; public string Channel { get; set; } = ""; public string? Subject { get; set; } public string? PushTitle { get; set; } public bool IsActive { get; set; } }
+    private class TemplateDetailResponse { public bool Success { get; set; } public TemplateEdit? Data { get; set; } }
+    private class TemplateEdit { public long Id { get; set; } public string Code { get; set; } = ""; public string Name { get; set; } = ""; public string Channel { get; set; } = "email"; public string? Subject { get; set; } public string? BodyHtml { get; set; } public string? BodyText { get; set; } public string? WhatsAppTemplateName { get; set; } public string? PushTitle { get; set; } public string? ActionUrl { get; set; } public string? PushImageUrl { get; set; } public bool IsActive { get; set; } }
+    private class LogListResponse { public bool Success { get; set; } public LogData? Data { get; set; } }
+    private class LogData { public int Total { get; set; } public List<LogRow>? Logs { get; set; } }
+    private class LogRow { public long Id { get; set; } public string Channel { get; set; } = ""; public string Recipient { get; set; } = ""; public string? Subject { get; set; } public string? BodyPreview { get; set; } public string Status { get; set; } = ""; public string? ErrorMessage { get; set; } public DateTime CreatedAt { get; set; } public DateTime? SentAt { get; set; } }
+}

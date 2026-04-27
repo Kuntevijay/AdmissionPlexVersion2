@@ -34,6 +34,17 @@
             @(loading ? "Logging in..." : "Login")
         </button>
 
+        @if (googleEnabled && !string.IsNullOrEmpty(googleClientId))
+        {
+            <div style="display:flex; align-items:center; gap:12px; margin:20px 0 16px;">
+                <div style="flex:1; height:1px; background:var(--ap-border);"></div>
+                <span style="font-size:12px; color:var(--ap-text-muted); text-transform:uppercase;">or</span>
+                <div style="flex:1; height:1px; background:var(--ap-border);"></div>
+            </div>
+
+            <div id="google-signin-btn" style="display:flex; justify-content:center;"></div>
+        }
+
         <p style="text-align:center; margin-top:20px; font-size:14px; color:var(--ap-text-muted);">
             Don't have an account? <a href="/register" style="font-weight:600;">Register</a>
         </p>
@@ -47,6 +58,81 @@
 @code {
     private string email = "", password = "", error = "";
     private bool loading = false;
+    private bool googleEnabled = false;
+    private string googleClientId = "";
+
+    [Inject] private IJSRuntime JS { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load Google auth config
+        try
+        {
+            var config = await Http.GetFromJsonAsync<AuthConfigResponse>("api/auth/config");
+            if (config?.Data != null)
+            {
+                googleEnabled = config.Data.GoogleEnabled;
+                googleClientId = config.Data.GoogleClientId ?? "";
+            }
+        }
+        catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && googleEnabled && !string.IsNullOrEmpty(googleClientId))
+        {
+            // Initialize Google Sign-In via JS interop
+            await JS.InvokeVoidAsync("initGoogleSignIn", googleClientId,
+                DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task HandleGoogleResponse(string idToken)
+    {
+        error = "";
+        loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/google", new { idToken });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginApiResponse>();
+                if (result?.Success == true && result.Data != null)
+                {
+                    await TokenStorage.SetTokenAsync(result.Data.Token);
+                    await TokenStorage.SetUserInfoAsync(result.Data.Role, result.Data.FullName, result.Data.Email);
+                    var redirectUrl = result.Data.Role switch
+                    {
+                        "Admin" => "/admin",
+                        "Counsellor" => "/counsellor",
+                        "Coordinator" => "/coordinator",
+                        _ => "/student"
+                    };
+                    Nav.NavigateTo(redirectUrl, forceLoad: true);
+                }
+                else
+                {
+                    error = "Google login failed. Please try again.";
+                }
+            }
+            else
+            {
+                var errorResult = await response.Content.ReadFromJsonAsync<ErrorApiResponse>();
+                error = errorResult?.Errors?.FirstOrDefault() ?? errorResult?.Message ?? "Google login failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error: {ex.Message}";
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
 
     private void HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
@@ -134,5 +220,17 @@
         public bool Success { get; set; }
         public string? Message { get; set; }
         public List<string>? Errors { get; set; }
+    }
+
+    private class AuthConfigResponse
+    {
+        public bool Success { get; set; }
+        public AuthConfigData? Data { get; set; }
+    }
+
+    private class AuthConfigData
+    {
+        public bool GoogleEnabled { get; set; }
+        public string? GoogleClientId { get; set; }
     }
 }

@@ -14,6 +14,15 @@ public class AppUser : IdentityUser<long>
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Social login
+    public string? LoginProvider { get; set; }        // "Local", "Google"
+    public string? ProviderKey { get; set; }          // Google sub (subject ID)
+    public string? ProfilePictureUrl { get; set; }
+
+    // Push notifications
+    public string? FcmDeviceToken { get; set; }       // Firebase Cloud Messaging token
+    public DateTime? FcmTokenUpdatedAt { get; set; }
+
     // Navigation to domain profiles
     public StudentProfile? StudentProfile { get; set; }
     public CounsellorProfile? CounsellorProfile { get; set; }

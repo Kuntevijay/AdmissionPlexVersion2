@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using AdmissionPlex.Core.Entities.Tests;
 using AdmissionPlex.Core.Entities.Careers;
+using AdmissionPlex.Core.Entities.Settings;
 using AdmissionPlex.Core.Enums;
 using AdmissionPlex.Shared.Constants;
 
@@ -15,6 +16,8 @@ public static class DbSeeder
         await SeedInterestCategoriesAsync(context);
         await SeedAptitudeCategoriesAsync(context);
         await SeedCareerStreamsAsync(context);
+        await SeedDefaultSettingsAsync(context);
+        await SeedNotificationTemplatesAsync(context);
         await context.SaveChangesAsync();
 
         // Auto-seed questions, tests, and careers on first startup
@@ -249,6 +252,152 @@ public static class DbSeeder
             new CareerStream { Name = "Commerce", Description = "Business, finance, accounting, economics." },
             new CareerStream { Name = "Arts", Description = "Humanities, social sciences, languages, creative." }
         );
+    }
+
+    private static async Task SeedDefaultSettingsAsync(AppDbContext context)
+    {
+        if (await context.AppSettings.AnyAsync()) return;
+
+        var defaults = new List<AppSetting>
+        {
+            // SMTP
+            new() { Category = "smtp", Key = "Host", Value = "", IsEnabled = false, Description = "SMTP server hostname (e.g. smtp.gmail.com)" },
+            new() { Category = "smtp", Key = "Port", Value = "587", IsEnabled = false, Description = "SMTP port (587 for TLS, 465 for SSL)" },
+            new() { Category = "smtp", Key = "Username", Value = "", IsEnabled = false, Description = "SMTP username / email" },
+            new() { Category = "smtp", Key = "Password", Value = "", IsSensitive = true, IsEnabled = false, Description = "SMTP password or app password" },
+            new() { Category = "smtp", Key = "FromEmail", Value = "", IsEnabled = false, Description = "Sender email address" },
+            new() { Category = "smtp", Key = "FromName", Value = "AdmissionPlex", IsEnabled = false, Description = "Sender display name" },
+            new() { Category = "smtp", Key = "EnableSsl", Value = "true", IsEnabled = false, Description = "Enable SSL/TLS" },
+
+            // SMS
+            new() { Category = "sms", Key = "Provider", Value = "msg91", IsEnabled = false, Description = "SMS provider: msg91, twilio, textlocal" },
+            new() { Category = "sms", Key = "ApiKey", Value = "", IsSensitive = true, IsEnabled = false, Description = "API key / Auth key" },
+            new() { Category = "sms", Key = "SenderId", Value = "ADMPLX", IsEnabled = false, Description = "SMS sender ID (6 chars)" },
+            new() { Category = "sms", Key = "TemplateId", Value = "", IsEnabled = false, Description = "MSG91 template ID (DLT registered)" },
+            new() { Category = "sms", Key = "AccountSid", Value = "", IsEnabled = false, Description = "Twilio Account SID (if using Twilio)" },
+            new() { Category = "sms", Key = "FromNumber", Value = "", IsEnabled = false, Description = "Twilio From number (if using Twilio)" },
+
+            // WhatsApp
+            new() { Category = "whatsapp", Key = "Provider", Value = "meta", IsEnabled = false, Description = "WhatsApp provider: meta, interakt, wati" },
+            new() { Category = "whatsapp", Key = "ApiKey", Value = "", IsSensitive = true, IsEnabled = false, Description = "API token / access token" },
+            new() { Category = "whatsapp", Key = "PhoneNumberId", Value = "", IsEnabled = false, Description = "Meta WhatsApp phone number ID" },
+            new() { Category = "whatsapp", Key = "BaseUrl", Value = "", IsEnabled = false, Description = "Wati base URL (if using Wati)" },
+
+            // Push (Firebase)
+            new() { Category = "push", Key = "ServerKey", Value = "", IsSensitive = true, IsEnabled = false, Description = "Firebase Cloud Messaging server key" },
+            new() { Category = "push", Key = "ProjectId", Value = "", IsEnabled = false, Description = "Firebase project ID" },
+
+            // Google Auth
+            new() { Category = "google_auth", Key = "ClientId", Value = "", IsEnabled = false, Description = "Google OAuth 2.0 Client ID" },
+            new() { Category = "google_auth", Key = "ClientSecret", Value = "", IsSensitive = true, IsEnabled = false, Description = "Google OAuth 2.0 Client Secret (not used for ID token flow, kept for reference)" },
+            new() { Category = "google_auth", Key = "AutoRegister", Value = "true", IsEnabled = false, Description = "Auto-create account on first Google login" },
+        };
+
+        context.AppSettings.AddRange(defaults);
+    }
+
+    private static async Task SeedNotificationTemplatesAsync(AppDbContext context)
+    {
+        if (await context.NotificationTemplates.AnyAsync()) return;
+
+        var templates = new List<NotificationTemplate>
+        {
+            // Welcome email
+            new()
+            {
+                Code = "welcome", Name = "Welcome Email", Channel = "email",
+                Subject = "Welcome to AdmissionPlex, {{StudentName}}!",
+                BodyHtml = """
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                        <h2 style="color:#4f46e5;">Welcome to AdmissionPlex!</h2>
+                        <p>Hi {{StudentName}},</p>
+                        <p>Thank you for registering. You can now take the psychometric career assessment
+                           to discover your ideal career path.</p>
+                        <p><a href="{{SiteUrl}}/student/assessment" style="background:#4f46e5;color:#fff;padding:12px 24px;
+                           border-radius:8px;text-decoration:none;display:inline-block;">Start Assessment →</a></p>
+                        <p style="color:#666;font-size:13px;">— Team AdmissionPlex</p>
+                    </div>
+                    """,
+                BodyText = "Welcome to AdmissionPlex, {{StudentName}}! Start your career assessment at {{SiteUrl}}/student/assessment",
+                IsActive = true
+            },
+            // Welcome SMS
+            new()
+            {
+                Code = "welcome", Name = "Welcome SMS", Channel = "sms",
+                BodyText = "Welcome to AdmissionPlex, {{StudentName}}! Start your career assessment now. {{SiteUrl}}",
+                IsActive = true
+            },
+            // Test completion
+            new()
+            {
+                Code = "test_complete", Name = "Test Completed Email", Channel = "email",
+                Subject = "You completed {{TestName}} — AdmissionPlex",
+                BodyHtml = """
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                        <h2 style="color:#4f46e5;">Section Completed!</h2>
+                        <p>Hi {{StudentName}},</p>
+                        <p>You have successfully completed <strong>{{TestName}}</strong>.</p>
+                        <p>Progress: {{CompletedCount}} / {{TotalCount}} sections done.</p>
+                        <p><a href="{{SiteUrl}}/student/assessment" style="background:#4f46e5;color:#fff;padding:12px 24px;
+                           border-radius:8px;text-decoration:none;display:inline-block;">Continue Assessment →</a></p>
+                    </div>
+                    """,
+                IsActive = true
+            },
+            // Report ready
+            new()
+            {
+                Code = "report_ready", Name = "Report Ready Email", Channel = "email",
+                Subject = "Your Career Report is Ready — AdmissionPlex",
+                BodyHtml = """
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                        <h2 style="color:#22c55e;">Your Career Report is Ready!</h2>
+                        <p>Hi {{StudentName}},</p>
+                        <p>Congratulations! You have completed all sections of the psychometric assessment.
+                           Your detailed career report is now available.</p>
+                        <p><a href="{{SiteUrl}}/student/assessment/report" style="background:#22c55e;color:#fff;padding:12px 24px;
+                           border-radius:8px;text-decoration:none;display:inline-block;">View Report →</a></p>
+                    </div>
+                    """,
+                BodyText = "Hi {{StudentName}}, your career report is ready! View it at {{SiteUrl}}/student/assessment/report",
+                IsActive = true
+            },
+            // Report ready push
+            new()
+            {
+                Code = "report_ready", Name = "Report Ready Push", Channel = "push",
+                PushTitle = "Career Report Ready!",
+                BodyText = "Your psychometric career report is ready to view.",
+                ActionUrl = "/student/assessment/report",
+                IsActive = true
+            },
+            // Payment success
+            new()
+            {
+                Code = "payment_success", Name = "Payment Success Email", Channel = "email",
+                Subject = "Payment Received — Order {{OrderId}}",
+                BodyHtml = """
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                        <h2 style="color:#22c55e;">Payment Successful</h2>
+                        <p>Hi {{StudentName}},</p>
+                        <p>We have received your payment of <strong>₹{{Amount}}</strong> (Order: {{OrderId}}).</p>
+                        <p>You now have full access to your detailed career report.</p>
+                    </div>
+                    """,
+                BodyText = "Payment of ₹{{Amount}} received. Order: {{OrderId}}. — AdmissionPlex",
+                IsActive = true
+            },
+            // Payment success SMS
+            new()
+            {
+                Code = "payment_success", Name = "Payment Success SMS", Channel = "sms",
+                BodyText = "AdmissionPlex: Payment of Rs.{{Amount}} received. Order: {{OrderId}}. Access your full report now.",
+                IsActive = true
+            },
+        };
+
+        context.NotificationTemplates.AddRange(templates);
     }
 }
 
