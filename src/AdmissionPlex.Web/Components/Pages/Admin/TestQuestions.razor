@@ -1,0 +1,288 @@
+@page "/admin/tests/{TestId:long}/questions"
+@layout AdminLayout
+@inject ApiClient Api
+
+<PageTitle>Test Questions - Admin</PageTitle>
+
+<div class="topbar">
+    <div>
+        <a href="/admin/tests" style="font-size:13px; color:var(--ap-text-muted); text-decoration:none;">← Back to tests</a>
+        <h2>@(testData?.Title ?? "Test") — Questions</h2>
+    </div>
+    <div class="topbar-actions">
+        <button class="btn btn-outline" @onclick="() => showAddSection = !showAddSection">+ Add Section</button>
+        <button class="btn btn-primary" @onclick="() => showAddQuestion = !showAddQuestion">+ Add Questions</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(msg))
+{ <div style="background:rgba(34,197,94,0.1); color:var(--ap-green); padding:10px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@msg</div> }
+@if (!string.IsNullOrEmpty(err))
+{ <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:10px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@err</div> }
+
+<!-- Add Section Form -->
+@if (showAddSection)
+{
+    <div class="card" style="margin-bottom:16px; border:2px dashed var(--ap-primary);">
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:10px;">Add new section</h4>
+        <div class="grid-4" style="gap:8px; margin-bottom:8px;">
+            <div class="form-group"><label class="form-label">Title</label><input class="form-input" @bind="newSectionTitle" placeholder="e.g. Verbal Ability" /></div>
+            <div class="form-group">
+                <label class="form-label">Section type</label>
+                <select class="form-select" @bind="newSectionType">
+                    <option value="Interest">Interest</option>
+                    <option value="Aptitude">Aptitude</option>
+                    <option value="StreamSelector">Stream Selector</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Interest category</label>
+                <select class="form-select" @bind="newSectionInterestId">
+                    <option value="0">— None —</option>
+                    @foreach (var c in interestCats) { <option value="@c.Id">@c.Code — @c.Name</option> }
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Aptitude category</label>
+                <select class="form-select" @bind="newSectionAptitudeId">
+                    <option value="0">— None —</option>
+                    @foreach (var c in aptitudeCats) { <option value="@c.Id">@c.Code — @c.Name</option> }
+                </select>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" @onclick="AddSection">Create Section</button>
+            <button class="btn btn-outline btn-sm" @onclick="() => showAddSection = false">Cancel</button>
+        </div>
+    </div>
+}
+
+<!-- Add Questions Panel -->
+@if (showAddQuestion)
+{
+    <div class="card" style="margin-bottom:16px; border:2px dashed var(--ap-lavender);">
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:10px;">Add questions from bank</h4>
+        <div class="grid-3" style="gap:8px; margin-bottom:12px;">
+            <div class="form-group"><label class="form-label">Search</label><input class="form-input" @bind="searchText" @bind:event="oninput" placeholder="Search question text..." /></div>
+            <div class="form-group">
+                <label class="form-label">Filter by type</label>
+                <select class="form-select" @bind="filterType" @bind:after="LoadAvailable">
+                    <option value="">All</option>
+                    <option value="Interest">Interest</option>
+                    <option value="Aptitude">Aptitude</option>
+                    <option value="StreamSelector">Stream Selector</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Add to section</label>
+                <select class="form-select" @bind="targetSectionId">
+                    @if (testData?.Sections != null)
+                    {
+                        @foreach (var s in testData.Sections)
+                        { <option value="@s.SectionId">@s.Title (@s.Questions.Count q)</option> }
+                    }
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" style="margin-bottom:12px;" @onclick="LoadAvailable">Search</button>
+
+        @if (availableQuestions != null && availableQuestions.Any())
+        {
+            <div style="max-height:300px; overflow-y:auto; border:1px solid var(--ap-border); border-radius:8px;">
+                @foreach (var q in availableQuestions)
+                {
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--ap-border);">
+                        <div style="flex:1;">
+                            <div style="font-size:13px; font-weight:500;">@q.Text</div>
+                            <div style="display:flex; gap:4px; margin-top:2px;">
+                                <span class="badge @(q.Section == "Interest" ? "badge-coral" : q.Section == "Aptitude" ? "badge-sky" : "badge-green")" style="font-size:9px;">@q.Section</span>
+                                @if (!string.IsNullOrEmpty(q.Category)) { <span class="badge badge-primary" style="font-size:9px;">@q.Category</span> }
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" style="font-size:11px; padding:3px 10px;" @onclick="() => AddQuestionToTest(q.Id)">+ Add</button>
+                    </div>
+                }
+            </div>
+        }
+        else if (availableQuestions != null)
+        {
+            <p style="font-size:13px; color:var(--ap-text-muted); text-align:center; padding:20px;">No available questions found. Import questions first via the Question Bank.</p>
+        }
+    </div>
+}
+
+<!-- Sections and Questions -->
+@if (loading)
+{ <div class="spinner"></div> }
+else if (testData?.Sections != null)
+{
+    @foreach (var sec in testData.Sections)
+    {
+        <div class="card" style="margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div>
+                    <h3 style="font-size:15px; font-weight:700; margin:0;">@sec.Title</h3>
+                    <div style="display:flex; gap:6px; margin-top:4px;">
+                        <span class="badge @(sec.SectionType == "Interest" ? "badge-coral" : sec.SectionType == "Aptitude" ? "badge-sky" : "badge-green")" style="font-size:10px;">@sec.SectionType</span>
+                        @if (!string.IsNullOrEmpty(sec.CategoryName)) { <span class="badge badge-primary" style="font-size:10px;">@sec.CategoryName</span> }
+                        <span class="badge badge-gold" style="font-size:10px;">@sec.Questions.Count questions</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (sec.Questions.Any())
+            {
+                <div style="border:1px solid var(--ap-border); border-radius:8px; overflow:hidden;">
+                    @foreach (var q in sec.Questions)
+                    {
+                        <div style="display:flex; align-items:center; padding:8px 12px; border-bottom:1px solid var(--ap-border); gap:8px;">
+                            <span style="font-size:11px; color:var(--ap-text-muted); min-width:24px;">@q.QuestionOrder.</span>
+                            <div style="flex:1; font-size:13px;">@q.Text</div>
+                            <span class="badge badge-primary" style="font-size:9px;">@q.Type · @q.OptionsCount opts</span>
+                            <button style="background:none; border:none; cursor:pointer; color:var(--ap-red); font-size:14px;" 
+                                    @onclick="() => RemoveQuestion(sec.SectionId, q.LinkId)">✕</button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p style="font-size:13px; color:var(--ap-text-muted); text-align:center; padding:16px;">No questions in this section. Use "+ Add Questions" to assign questions.</p>
+            }
+        </div>
+    }
+}
+else
+{
+    <div class="card" style="padding:60px; text-align:center;">
+        <p style="color:var(--ap-text-muted);">No sections found. Add a section first, then add questions to it.</p>
+    </div>
+}
+
+@code {
+    [Parameter] public long TestId { get; set; }
+
+    private TestQData? testData;
+    private List<AvailableQ>? availableQuestions;
+    private List<CatItem> interestCats = new();
+    private List<CatItem> aptitudeCats = new();
+    private bool loading = true;
+    private bool showAddSection = false;
+    private bool showAddQuestion = false;
+    private string msg = "", err = "";
+
+    // Add section form
+    private string newSectionTitle = "";
+    private string newSectionType = "Aptitude";
+    private long newSectionInterestId = 0;
+    private long newSectionAptitudeId = 0;
+
+    // Add question form
+    private string searchText = "";
+    private string filterType = "";
+    private long targetSectionId = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await LoadAll(); StateHasChanged(); }
+    }
+
+    private async Task LoadAll()
+    {
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<ApiResponse<TestQData>>($"api/tests/{TestId}/questions");
+            testData = resp?.Data;
+            if (testData?.Sections?.Any() == true && targetSectionId == 0)
+                targetSectionId = testData.Sections.First().SectionId;
+
+            interestCats = (await Api.GetFromJsonAsync<ApiResponse<List<CatItem>>>("api/interest-categories"))?.Data ?? new();
+            aptitudeCats = (await Api.GetFromJsonAsync<ApiResponse<List<CatItem>>>("api/aptitude-categories"))?.Data ?? new();
+        }
+        catch { }
+        loading = false;
+    }
+
+    private async Task LoadAvailable()
+    {
+        try
+        {
+            var url = $"api/tests/{TestId}/available-questions?sectionType={filterType}&search={searchText}";
+            availableQuestions = (await Api.GetFromJsonAsync<ApiResponse<List<AvailableQ>>>(url))?.Data ?? new();
+        }
+        catch { availableQuestions = new(); }
+        StateHasChanged();
+    }
+
+    private async Task AddSection()
+    {
+        msg = ""; err = "";
+        var dto = new { Title = newSectionTitle, SectionType = newSectionType, InterestCategoryId = newSectionInterestId > 0 ? (long?)newSectionInterestId : null, AptitudeCategoryId = newSectionAptitudeId > 0 ? (long?)newSectionAptitudeId : null };
+        var resp = await Api.PostAsJsonAsync($"api/tests/{TestId}/sections", dto);
+        if (resp.IsSuccessStatusCode) { msg = "Section added."; showAddSection = false; await LoadAll(); }
+        else err = "Failed to add section.";
+        StateHasChanged();
+    }
+
+    private async Task AddQuestionToTest(long questionId)
+    {
+        msg = ""; err = "";
+        if (targetSectionId == 0) { err = "Select a section first."; StateHasChanged(); return; }
+        var resp = await Api.PostAsJsonAsync($"api/tests/{TestId}/sections/{targetSectionId}/add-question", new { QuestionId = questionId });
+        if (resp.IsSuccessStatusCode) { msg = "Question added."; await LoadAll(); await LoadAvailable(); }
+        else { var e = await resp.Content.ReadFromJsonAsync<ApiResponse<object>>(); err = e?.Errors?.FirstOrDefault() ?? "Failed."; }
+        StateHasChanged();
+    }
+
+    private async Task RemoveQuestion(long sectionId, long linkId)
+    {
+        msg = ""; err = "";
+        var resp = await Api.DeleteAsync($"api/tests/{TestId}/sections/{sectionId}/questions/{linkId}");
+        if (resp.IsSuccessStatusCode) { msg = "Removed."; await LoadAll(); }
+        else err = "Failed.";
+        StateHasChanged();
+    }
+
+    private class TestQData
+    {
+        public long Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Code { get; set; } = "";
+        public List<SectionData> Sections { get; set; } = new();
+    }
+
+    private class SectionData
+    {
+        public long SectionId { get; set; }
+        public string Title { get; set; } = "";
+        public string SectionType { get; set; } = "";
+        public string CategoryName { get; set; } = "";
+        public List<QuestionData> Questions { get; set; } = new();
+    }
+
+    private class QuestionData
+    {
+        public long LinkId { get; set; }
+        public long QuestionId { get; set; }
+        public int QuestionOrder { get; set; }
+        public string Text { get; set; } = "";
+        public string Type { get; set; } = "";
+        public int OptionsCount { get; set; }
+    }
+
+    private class AvailableQ
+    {
+        public long Id { get; set; }
+        public string Text { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Section { get; set; } = "";
+        public string Category { get; set; } = "";
+    }
+
+    private class CatItem
+    {
+        public long Id { get; set; }
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+    }
+}

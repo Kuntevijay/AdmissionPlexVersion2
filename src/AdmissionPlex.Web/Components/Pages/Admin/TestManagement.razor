@@ -9,6 +9,7 @@
     <div class="topbar-actions">
         <button class="btn btn-outline" @onclick="() => showCats = !showCats">📂 Categories</button>
         <a href="/admin/questions" class="btn btn-outline">📥 Questions</a>
+        <button class="btn btn-outline" @onclick="OpenNewContinuity">+ Continuity Test</button>
         <button class="btn btn-primary" @onclick="OpenNew">+ New Test</button>
     </div>
 </div>
@@ -71,6 +72,85 @@
                 </div>
             </div>
         }
+    </div>
+}
+
+@if (showContinuityForm)
+{
+    <div class="card" style="margin-bottom:24px; border:2px solid var(--ap-lavender);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:16px; font-weight:700; margin:0;">Create continuity flow test</h3>
+            <button style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--ap-text-muted);" @onclick="() => showContinuityForm = false">✕</button>
+        </div>
+
+        <p style="font-size:13px; color:var(--ap-text-muted); margin-bottom:16px;">
+            A continuity flow test is a group of sequential sub-tests (like the psychometric assessment). 
+            Define the parent group first, then add sub-tests below. Students must complete each sub-test in order.
+        </p>
+
+        <!-- Parent group config -->
+        <div style="padding:16px; background:var(--ap-bg); border-radius:8px; margin-bottom:16px;">
+            <h4 style="font-size:14px; font-weight:600; margin-bottom:10px;">Step 1: Parent group</h4>
+            <div class="grid-3" style="gap:12px;">
+                <div class="form-group"><label class="form-label">Group code *</label><input class="form-input" @bind="cfParentCode" placeholder="e.g. aptitude_battery" /></div>
+                <div class="form-group"><label class="form-label">Display title *</label><input class="form-input" @bind="cfParentTitle" placeholder="e.g. Aptitude Battery Test" /></div>
+                <div class="form-group"><label class="form-label">Icon</label><input class="form-input" @bind="cfParentIcon" placeholder="🧠" /></div>
+            </div>
+            <div class="grid-2" style="gap:12px; margin-top:8px;">
+                <div class="form-group"><label class="form-label">Description</label><input class="form-input" @bind="cfParentDesc" placeholder="Description for students..." /></div>
+                <div class="form-group"><label class="form-label">Total price (0 = free)</label><input class="form-input" type="number" @bind="cfParentPrice" /></div>
+            </div>
+        </div>
+
+        <!-- Sub-tests list -->
+        <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="font-size:14px; font-weight:600;">Step 2: Sub-tests (@cfSubTests.Count added)</h4>
+                <button class="btn btn-outline btn-sm" @onclick="AddSubTest">+ Add sub-test</button>
+            </div>
+
+            @for (int i = 0; i < cfSubTests.Count; i++)
+            {
+                var idx = i;
+                var sub = cfSubTests[idx];
+                <div style="background:var(--ap-bg); border-radius:8px; padding:12px; margin-bottom:8px; border-left:3px solid var(--ap-lavender);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:13px; font-weight:600;">Sub-test @(idx + 1)</span>
+                        <button style="background:none; border:none; cursor:pointer; color:var(--ap-red); font-size:13px;" @onclick="() => cfSubTests.RemoveAt(idx)">Remove</button>
+                    </div>
+                    <div class="grid-4" style="gap:8px;">
+                        <div class="form-group"><label class="form-label">Code</label><input class="form-input" @bind="sub.Code" placeholder="sub_test_1" /></div>
+                        <div class="form-group"><label class="form-label">Title</label><input class="form-input" @bind="sub.Title" placeholder="Part 1 — Basics" /></div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" @bind="sub.Category">
+                                <option value="Interest">Interest</option>
+                                <option value="Aptitude">Aptitude</option>
+                                <option value="IQ">IQ</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label class="form-label">Duration (min)</label><input class="form-input" type="number" @bind="sub.DurationMinutes" /></div>
+                    </div>
+                    <div class="grid-3" style="gap:8px; margin-top:4px;">
+                        <div class="form-group"><label class="form-label">Icon</label><input class="form-input" @bind="sub.Icon" placeholder="📝" /></div>
+                        <div class="form-group">
+                            <label class="form-label">Test type</label>
+                            <select class="form-select" @bind="sub.TestType">
+                                <option value="InterestSurvey">Interest Survey</option>
+                                <option value="AptitudeTest">Aptitude Test</option>
+                                <option value="IQTest">IQ Test</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label class="form-label">Description</label><input class="form-input" @bind="sub.Description" /></div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" @onclick="SaveContinuityTest" disabled="@saving">@(saving ? "Creating..." : "Create All Sub-tests")</button>
+            <button class="btn btn-outline" @onclick="() => showContinuityForm = false">Cancel</button>
+        </div>
     </div>
 }
 
@@ -170,6 +250,7 @@ else
                     </div>
                 </div>
                 <div style="display:flex; gap:6px; flex-shrink:0;">
+                    <a href="/admin/tests/@t.Id/questions" class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px;">Questions</a>
                     <button class="btn btn-sm @(t.IsActive ? "btn-outline" : "btn-primary")" style="font-size:11px; padding:4px 10px;" @onclick="() => ToggleActive(t)">@(t.IsActive ? "Deactivate" : "Activate")</button>
                     <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px;" @onclick="() => EditTest(t)">Edit</button>
                     <button class="btn btn-sm btn-danger" style="font-size:11px; padding:4px 10px;" @onclick="() => DeleteTest(t.Id)">Del</button>
@@ -202,6 +283,7 @@ else
                         <div style="font-weight:600; font-size:12px; margin-bottom:2px;">@t.Title</div>
                         <div style="font-size:10px; color:var(--ap-text-muted);">@t.TotalQuestions q · @t.DurationMinutes min</div>
                         <div style="display:flex; gap:4px; margin-top:6px;">
+                            <a href="/admin/tests/@t.Id/questions" class="btn btn-outline btn-sm" style="font-size:9px; padding:2px 6px;">Q's</a>
                             <button class="btn btn-outline btn-sm" style="font-size:9px; padding:2px 6px;" @onclick="() => EditTest(t)">Edit</button>
                             <button class="btn btn-sm @(t.IsActive ? "btn-outline" : "btn-primary")" style="font-size:9px; padding:2px 6px;" @onclick="() => ToggleActive(t)">@(t.IsActive ? "Off" : "On")</button>
                         </div>
@@ -220,7 +302,16 @@ else
     private bool saving = false;
     private bool showCats = false;
     private bool showCatForm = false;
+    private bool showContinuityForm = false;
     private string catType = "interest";
+
+    // Continuity test form state
+    private string cfParentCode = "";
+    private string cfParentTitle = "";
+    private string cfParentIcon = "🧠";
+    private string cfParentDesc = "";
+    private decimal cfParentPrice = 0;
+    private List<SubTestModel> cfSubTests = new();
     private long editId = 0;
     private string msg = "";
     private string err = "";
@@ -268,6 +359,91 @@ else
             }
         }
         catch (Exception ex) { err = ex.Message; }
+        StateHasChanged();
+    }
+
+    private void OpenNewContinuity()
+    {
+        showContinuityForm = true;
+        showForm = false;
+        cfParentCode = "";
+        cfParentTitle = "";
+        cfParentIcon = "🧠";
+        cfParentDesc = "";
+        cfParentPrice = 0;
+        cfSubTests = new();
+        AddSubTest();
+        AddSubTest();
+    }
+
+    private void AddSubTest()
+    {
+        var order = cfSubTests.Count + 1;
+        cfSubTests.Add(new SubTestModel
+        {
+            Code = $"{cfParentCode}_{order}",
+            Title = $"Part {order}",
+            Category = "Aptitude",
+            TestType = "AptitudeTest",
+            DurationMinutes = 10,
+            Icon = "📝"
+        });
+    }
+
+    private async Task SaveContinuityTest()
+    {
+        if (string.IsNullOrWhiteSpace(cfParentCode) || string.IsNullOrWhiteSpace(cfParentTitle) || cfSubTests.Count == 0)
+        {
+            err = "Parent code, title, and at least one sub-test are required.";
+            return;
+        }
+        saving = true; msg = ""; err = "";
+        StateHasChanged();
+
+        int created = 0;
+        try
+        {
+            for (int i = 0; i < cfSubTests.Count; i++)
+            {
+                var sub = cfSubTests[i];
+                var dto = new FormModel
+                {
+                    Code = string.IsNullOrWhiteSpace(sub.Code) ? $"{cfParentCode}_{i + 1}" : sub.Code,
+                    Title = sub.Title,
+                    TestType = sub.TestType,
+                    Category = sub.Category,
+                    Description = sub.Description,
+                    Icon = sub.Icon,
+                    DisplayOrder = i + 1,
+                    DurationMinutes = sub.DurationMinutes,
+                    Price = 0,
+                    IsActive = true,
+                    IsPublic = false,
+                    RequiresPayment = cfParentPrice > 0,
+                    IsContinuityFlow = true,
+                    ParentTestCode = cfParentCode,
+                    IncludesCounsellorSession = false
+                };
+
+                var resp = await Api.PostAsJsonAsync("api/tests", dto);
+                if (resp.IsSuccessStatusCode) created++;
+                else
+                {
+                    var body = await resp.Content.ReadAsStringAsync();
+                    err = $"Failed on sub-test {i + 1}: {body}";
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(err))
+            {
+                msg = $"Created continuity test '{cfParentTitle}' with {created} sub-tests.";
+                showContinuityForm = false;
+                await Load();
+            }
+        }
+        catch (Exception ex) { err = ex.Message; }
+        saving = false;
         StateHasChanged();
     }
 
@@ -436,5 +612,16 @@ else
         public string Name { get; set; } = "";
         public string? Description { get; set; }
         public int DisplayOrder { get; set; }
+    }
+
+    private class SubTestModel
+    {
+        public string Code { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Category { get; set; } = "Aptitude";
+        public string TestType { get; set; } = "AptitudeTest";
+        public int DurationMinutes { get; set; } = 10;
+        public string? Icon { get; set; } = "📝";
+        public string? Description { get; set; }
     }
 }

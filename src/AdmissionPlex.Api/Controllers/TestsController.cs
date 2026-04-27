@@ -338,6 +338,96 @@ public class TestsController : ControllerBase
         return student?.Id ?? 0;
     }
 
+    // ── Test Question Management ──
+    [HttpGet("{id:long}/questions")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetTestQuestions(long id)
+    {
+        var test = await _context.Tests
+            .Include(t => t.Sections.OrderBy(s => s.SectionOrder))
+                .ThenInclude(s => s.Questions.OrderBy(q => q.QuestionOrder))
+                    .ThenInclude(sq => sq.Question)
+                        .ThenInclude(q => q.Options.OrderBy(o => o.OptionOrder))
+            .Include(t => t.Sections).ThenInclude(s => s.InterestCategory)
+            .Include(t => t.Sections).ThenInclude(s => s.AptitudeCategory)
+            .FirstOrDefaultAsync(t => t.Id == id);
+        if (test == null) return NotFound();
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            test.Id, test.Title, test.Code,
+            Sections = test.Sections.OrderBy(s => s.SectionOrder).Select(s => new
+            {
+                SectionId = s.Id, s.Title, SectionType = s.SectionType.ToString(),
+                CategoryName = s.InterestCategory?.Name ?? s.AptitudeCategory?.Name ?? "",
+                Questions = s.Questions.OrderBy(q => q.QuestionOrder).Select(sq => new
+                {
+                    LinkId = sq.Id, sq.QuestionId, sq.QuestionOrder,
+                    Text = sq.Question.QuestionText, Type = sq.Question.QuestionType.ToString(),
+                    OptionsCount = sq.Question.Options.Count
+                }).ToList()
+            }).ToList()
+        }));
+    }
+
+    [HttpPost("{id:long}/sections/{sectionId:long}/add-question")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AddQuestionToSection(long id, long sectionId, [FromBody] AddQuestionDto dto)
+    {
+        var section = await _context.Set<TestSection>().Include(s => s.Questions).FirstOrDefaultAsync(s => s.Id == sectionId && s.TestId == id);
+        if (section == null) return NotFound(ApiResponse<object>.Fail("Section not found."));
+        if (section.Questions.Any(q => q.QuestionId == dto.QuestionId)) return BadRequest(ApiResponse<object>.Fail("Already added."));
+        var maxOrder = section.Questions.Any() ? section.Questions.Max(q => q.QuestionOrder) : 0;
+        section.Questions.Add(new TestSectionQuestion { QuestionId = dto.QuestionId, QuestionOrder = maxOrder + 1 });
+        var test = await _context.Tests.Include(t => t.Sections).ThenInclude(s => s.Questions).FirstOrDefaultAsync(t => t.Id == id);
+        if (test != null) test.TotalQuestions = test.Sections.Sum(s => s.Questions.Count);
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }, "Added."));
+    }
+
+    [HttpDelete("{id:long}/sections/{sectionId:long}/questions/{linkId:long}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RemoveQuestionFromSection(long id, long sectionId, long linkId)
+    {
+        var link = await _context.Set<TestSectionQuestion>().FirstOrDefaultAsync(q => q.Id == linkId && q.SectionId == sectionId);
+        if (link == null) return NotFound();
+        _context.Set<TestSectionQuestion>().Remove(link);
+        var test = await _context.Tests.Include(t => t.Sections).ThenInclude(s => s.Questions).FirstOrDefaultAsync(t => t.Id == id);
+        if (test != null) test.TotalQuestions = test.Sections.Sum(s => s.Questions.Count) - 1;
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }, "Removed."));
+    }
+
+    [HttpPost("{id:long}/sections")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AddSection(long id, [FromBody] AddSectionDto dto)
+    {
+        var test = await _context.Tests.Include(t => t.Sections).FirstOrDefaultAsync(t => t.Id == id);
+        if (test == null) return NotFound();
+        var maxOrder = test.Sections.Any() ? test.Sections.Max(s => s.SectionOrder) : 0;
+        var section = new TestSection
+        {
+            TestId = id, Title = dto.Title,
+            SectionType = Enum.TryParse<SectionType>(dto.SectionType, true, out var st) ? st : SectionType.Aptitude,
+            SectionOrder = maxOrder + 1, InterestCategoryId = dto.InterestCategoryId, AptitudeCategoryId = dto.AptitudeCategoryId
+        };
+        _context.Set<TestSection>().Add(section);
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { section.Id, section.Title }));
+    }
+
+    [HttpGet("{id:long}/available-questions")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAvailableQuestions(long id, [FromQuery] string? sectionType, [FromQuery] string? search)
+    {
+        var assignedIds = await _context.Set<TestSectionQuestion>().Where(sq => sq.Section.TestId == id).Select(sq => sq.QuestionId).ToListAsync();
+        var query = _context.Questions.Include(q => q.InterestCategory).Include(q => q.AptitudeCategory).Where(q => q.IsActive && !assignedIds.Contains(q.Id));
+        if (!string.IsNullOrEmpty(sectionType) && Enum.TryParse<SectionType>(sectionType, true, out var stf)) query = query.Where(q => q.SectionType == stf);
+        if (!string.IsNullOrEmpty(search)) query = query.Where(q => q.QuestionText.Contains(search));
+        var questions = await query.OrderBy(q => q.Id).Take(50).Select(q => new { q.Id, Text = q.QuestionText, Type = q.QuestionType.ToString(), Section = q.SectionType.ToString(), Category = q.InterestCategory != null ? q.InterestCategory.Name : q.AptitudeCategory != null ? q.AptitudeCategory.Name : "" }).ToListAsync();
+        return Ok(ApiResponse<object>.Ok(questions));
+    }
+
     // ── CRUD ──
     [HttpPost]
     [Authorize(Roles = "Admin")]
@@ -486,3 +576,6 @@ public class CreateTestDto
     public string? Instructions { get; set; }
     public bool IncludesCounsellorSession { get; set; }
 }
+
+public class AddQuestionDto { public long QuestionId { get; set; } }
+public class AddSectionDto { public string Title { get; set; } = ""; public string SectionType { get; set; } = "Aptitude"; public long? InterestCategoryId { get; set; } public long? AptitudeCategoryId { get; set; } }
