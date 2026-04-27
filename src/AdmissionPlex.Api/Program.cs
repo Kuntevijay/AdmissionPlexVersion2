@@ -80,6 +80,7 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseHttpsRedirection();
 app.UseCors("BlazorClient");
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

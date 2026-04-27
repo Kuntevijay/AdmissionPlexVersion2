@@ -11,6 +11,7 @@ public class QuestionOption : BaseEntity
     public bool IsCorrect { get; set; }
     public decimal ScoreValue { get; set; }
     public StreamType? StreamTag { get; set; }
+    public string? ImageUrl { get; set; }
 
     // Navigation
     public Question Question { get; set; } = null!;

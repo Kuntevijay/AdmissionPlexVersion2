@@ -54,4 +54,19 @@ public class ApiClient
         await AttachTokenAsync();
         return await _http.DeleteAsync(url);
     }
+
+    public async Task<HttpResponseMessage> PostMultipartAsync(string url, MultipartFormDataContent content)
+    {
+        await AttachTokenAsync();
+        return await _http.PostAsync(url, content);
+    }
+
+    /// <summary>Resolves a relative path (e.g. "/uploads/x.jpg") against the API base URL for use in &lt;img src="..."&gt;.</summary>
+    public string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return "";
+        if (path.StartsWith("http://") || path.StartsWith("https://")) return path;
+        var baseAddr = _http.BaseAddress?.ToString().TrimEnd('/') ?? "";
+        return path.StartsWith("/") ? $"{baseAddr}{path}" : $"{baseAddr}/{path}";
+    }
 }

@@ -98,7 +98,8 @@ public class QuestionsController : ControllerBase
                 OptionOrder = opt.OptionOrder,
                 IsCorrect = opt.IsCorrect,
                 ScoreValue = opt.ScoreValue,
-                StreamTag = streamTag
+                StreamTag = streamTag,
+                ImageUrl = opt.ImageUrl
             });
         }
 
@@ -151,7 +152,8 @@ public class QuestionsController : ControllerBase
                 OptionOrder = opt.OptionOrder,
                 IsCorrect = opt.IsCorrect,
                 ScoreValue = opt.ScoreValue,
-                StreamTag = streamTag
+                StreamTag = streamTag,
+                ImageUrl = opt.ImageUrl
             });
         }
 
@@ -206,7 +208,8 @@ public class QuestionsController : ControllerBase
             OptionOrder = o.OptionOrder,
             IsCorrect = o.IsCorrect,
             ScoreValue = o.ScoreValue,
-            StreamTag = o.StreamTag?.ToString()
+            StreamTag = o.StreamTag?.ToString(),
+            ImageUrl = o.ImageUrl
         }).OrderBy(o => o.OptionOrder).ToList()
     };
 }

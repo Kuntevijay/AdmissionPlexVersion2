@@ -6,7 +6,10 @@
 
 <div class="topbar">
     <div><h2>Question Bank</h2><p class="topbar-subtitle">Import questions for Career Quiz and Psychometric Assessment</p></div>
-    <button class="btn btn-primary" @onclick="() => showImport = !showImport">📥 Import Questions</button>
+    <div style="display:flex; gap:8px;">
+        <button class="btn btn-outline" @onclick="OpenNewDialog">➕ New Question</button>
+        <button class="btn btn-primary" @onclick="() => showImport = !showImport">📥 Import Questions</button>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(successMsg))
@@ -148,6 +151,7 @@
                     @if (!string.IsNullOrEmpty(q.AptitudeCategoryName)) { <span class="badge badge-primary" style="font-size:10px;">@q.AptitudeCategoryName</span> }
                     <span class="badge badge-gold" style="font-size:10px;">@q.Options.Count opts</span>
                 </div>
+                <button class="btn btn-sm btn-outline" style="font-size:10px; padding:3px 8px;" @onclick="() => OpenEditDialog(q.Id)">Edit</button>
                 <button class="btn btn-sm btn-danger" style="font-size:10px; padding:3px 8px;" @onclick="() => Delete(q.Id)">Del</button>
             </div>
         }
@@ -155,6 +159,167 @@
     }
     else { <div style="padding:48px; text-align:center; color:var(--ap-text-muted);">No questions. Import or seed sample data.</div> }
 </div>
+
+@* ═══════ Question Editor Dialog ═══════ *@
+@if (editing != null)
+{
+    <div style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:flex-start; justify-content:center; padding:24px; overflow-y:auto;"
+         @onclick="CloseDialog">
+        <div class="card" style="width:100%; max-width:760px; margin-top:20px;" @onclick:stopPropagation @onclick:preventDefault="false">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:18px; font-weight:700; margin:0;">@(editing.Id > 0 ? "Edit Question" : "New Question")</h3>
+                <button class="btn btn-sm btn-outline" @onclick="CloseDialog">✕ Close</button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(dialogError))
+            { <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:14px;">@dialogError</div> }
+
+            <div class="grid-2" style="gap:14px;">
+                <div class="form-group">
+                    <label class="form-label">Section Type</label>
+                    <select class="form-input" @bind="editing.SectionType">
+                        <option value="StreamSelector">Quiz (StreamSelector)</option>
+                        <option value="Interest">Interest</option>
+                        <option value="Aptitude">Aptitude</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Difficulty</label>
+                    <select class="form-input" @bind="editing.Difficulty">
+                        <option value="Easy">Easy</option><option value="Medium">Medium</option><option value="Hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (editing.SectionType == "Interest")
+            {
+                <div class="form-group">
+                    <label class="form-label">Interest Category</label>
+                    <select class="form-input" @bind="editing.InterestCategoryId">
+                        <option value="">— Select —</option>
+                        @foreach (var c in interestCats)
+                        { <option value="@c.Id">@c.Code — @c.Name</option> }
+                    </select>
+                </div>
+            }
+            else if (editing.SectionType == "Aptitude")
+            {
+                <div class="form-group">
+                    <label class="form-label">Aptitude Category</label>
+                    <select class="form-input" @bind="editing.AptitudeCategoryId">
+                        <option value="">— Select —</option>
+                        @foreach (var c in aptitudeCats)
+                        { <option value="@c.Id">@c.Code — @c.Name</option> }
+                    </select>
+                </div>
+            }
+
+            <div class="form-group">
+                <label class="form-label">Question Text</label>
+                <textarea class="form-input" rows="3" @bind="editing.QuestionText" placeholder="Enter the question..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Question Image (optional)</label>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    @if (!string.IsNullOrEmpty(editing.ImageUrl))
+                    {
+                        <img src="@Api.ResolveUrl(editing.ImageUrl)" style="max-width:160px; max-height:100px; border-radius:6px; border:1px solid var(--ap-border);" />
+                        <button class="btn btn-sm btn-outline" @onclick="() => editing.ImageUrl = null">Remove</button>
+                    }
+                    <InputFile OnChange="@(e => UploadImageForQuestion(e))" accept="image/*" />
+                    @if (qImgUploading) { <span style="font-size:12px; color:var(--ap-text-muted);">Uploading…</span> }
+                </div>
+            </div>
+
+            <div class="grid-2" style="gap:14px;">
+                <div class="form-group">
+                    <label class="form-label">Weightage</label>
+                    <input class="form-input" type="number" step="0.01" @bind="editing.Weightage" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Max Score</label>
+                    <input class="form-input" type="number" step="0.01" @bind="editing.MaxScore" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Explanation (optional)</label>
+                <textarea class="form-input" rows="2" @bind="editing.Explanation"></textarea>
+            </div>
+
+            @* ─── Options ─── *@
+            @if (editing.SectionType != "Interest")
+            {
+                <div style="margin-top:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <label class="form-label" style="margin:0;">Options</label>
+                    <button class="btn btn-sm btn-outline" @onclick="AddOption">+ Add Option</button>
+                </div>
+                @for (int i = 0; i < editing.Options.Count; i++)
+                {
+                    var idx = i;
+                    var opt = editing.Options[idx];
+                    <div style="border:1px solid var(--ap-border); border-radius:8px; padding:12px; margin-bottom:10px;">
+                        <div style="display:flex; gap:10px; align-items:flex-start;">
+                            <div style="font-weight:600; padding-top:8px;">@((char)('A' + idx))</div>
+                            <div style="flex:1;">
+                                <input class="form-input" placeholder="Option text" @bind="opt.OptionText" />
+                                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+                                    @if (editing.SectionType == "Aptitude")
+                                    {
+                                        <label style="font-size:12px; display:flex; align-items:center; gap:4px;">
+                                            <input type="checkbox" checked="@opt.IsCorrect" @onchange="e => opt.IsCorrect = (bool)e.Value!" /> Correct
+                                        </label>
+                                        <label style="font-size:12px; display:flex; align-items:center; gap:4px;">
+                                            Score:
+                                            <input class="form-input" style="width:70px; padding:4px 6px;" type="number" step="0.5" @bind="opt.ScoreValue" />
+                                        </label>
+                                    }
+                                    @if (editing.SectionType == "StreamSelector")
+                                    {
+                                        <label style="font-size:12px; display:flex; align-items:center; gap:4px;">
+                                            Stream:
+                                            <select class="form-input" style="width:130px; padding:4px 6px;" @bind="opt.StreamTag">
+                                                <option value="">—</option>
+                                                <option value="Science">Science</option>
+                                                <option value="Commerce">Commerce</option>
+                                                <option value="Arts">Arts</option>
+                                                <option value="Undecided">Undecided</option>
+                                            </select>
+                                        </label>
+                                    }
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+                                    @if (!string.IsNullOrEmpty(opt.ImageUrl))
+                                    {
+                                        <img src="@Api.ResolveUrl(opt.ImageUrl)" style="max-width:90px; max-height:60px; border-radius:4px; border:1px solid var(--ap-border);" />
+                                        <button class="btn btn-sm btn-outline" style="font-size:10px; padding:2px 6px;" @onclick="() => opt.ImageUrl = null">Remove</button>
+                                    }
+                                    <InputFile OnChange="@(e => UploadImageForOption(e, idx))" accept="image/*" />
+                                    @if (optImgUploadingIdx == idx) { <span style="font-size:12px; color:var(--ap-text-muted);">Uploading…</span> }
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-danger" style="font-size:10px; padding:3px 8px;" @onclick="() => RemoveOption(idx)">Del</button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p style="font-size:12px; color:var(--ap-text-muted); padding:12px; background:var(--ap-bg); border-radius:6px;">
+                    Interest questions use a built-in 5-point Likert scale and don't need explicit options.
+                </p>
+            }
+
+            <div style="display:flex; gap:8px; margin-top:18px;">
+                <button class="btn btn-primary" @onclick="SaveQuestion" disabled="@savingDialog">
+                    @(savingDialog ? "Saving…" : "Save Question")
+                </button>
+                <button class="btn btn-outline" @onclick="CloseDialog">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<QuestionDto>? questions;
@@ -240,8 +405,226 @@
     async Task Delete(long id) { await Api.DeleteAsync($"api/questions/{id}"); await Load(); StateHasChanged(); }
 
     string TypeBadge(string t) => t switch { "StreamSelector" => "badge-green", "Interest" => "badge-coral", "Aptitude" => "badge-sky", _ => "badge-primary" };
-    string MapInterestCode(string n) => n switch { "Fine Arts"=>"FA","Performing Arts"=>"PA","Machines & Tools"=>"MT","Methodical"=>"ME","People Interaction"=>"PI","Social"=>"SO","Working With Numbers"=>"WN","Research & Analysis"=>"RA","Language Usage"=>"LU","Outdoor & Sports"=>"OS",_=>"" };
-    string MapAptitudeCode(string n) => n switch { "Speed & Accuracy"=>"SA","Number Calculations"=>"NC","Mechanical Ability"=>"MA","Number Application"=>"NA","Verbal Ability"=>"VA","Logical Ability"=>"LA","Spatial Ability"=>"SP",_=>"" };
+    string MapInterestCode(string? n) => n switch { "Fine Arts"=>"FA","Performing Arts"=>"PA","Machines & Tools"=>"MT","Methodical"=>"ME","People Interaction"=>"PI","Social"=>"SO","Working With Numbers"=>"WN","Research & Analysis"=>"RA","Language Usage"=>"LU","Outdoor & Sports"=>"OS",_=>"" };
+    string MapAptitudeCode(string? n) => n switch { "Speed & Accuracy"=>"SA","Number Calculations"=>"NC","Mechanical Ability"=>"MA","Number Application"=>"NA","Verbal Ability"=>"VA","Logical Ability"=>"LA","Spatial Ability"=>"SP",_=>"" };
 
     class ImportRes { public int QuestionsCreated { get; set; } public int QuestionsSkipped { get; set; } public int TotalInBank { get; set; } }
+
+    // ─── Editor dialog state ───
+    private QuestionEditModel? editing;
+    private string dialogError = "";
+    private bool savingDialog, qImgUploading;
+    private int optImgUploadingIdx = -1;
+    private List<CategoryDto> interestCats = new(), aptitudeCats = new();
+    private bool catsLoaded;
+
+    async Task EnsureCatsLoaded()
+    {
+        if (catsLoaded) return;
+        try
+        {
+            interestCats = (await Api.GetFromJsonAsync<ApiResponse<List<CategoryDto>>>("api/interest-categories"))?.Data ?? new();
+            aptitudeCats = (await Api.GetFromJsonAsync<ApiResponse<List<CategoryDto>>>("api/aptitude-categories"))?.Data ?? new();
+            catsLoaded = true;
+        }
+        catch { }
+    }
+
+    async Task OpenNewDialog()
+    {
+        await EnsureCatsLoaded();
+        editing = new QuestionEditModel
+        {
+            SectionType = "Interest",
+            Difficulty = "Medium",
+            Weightage = 1m,
+            MaxScore = 1m,
+            Options = new List<OptionEditModel>()
+        };
+        dialogError = "";
+        StateHasChanged();
+    }
+
+    async Task OpenEditDialog(long id)
+    {
+        await EnsureCatsLoaded();
+        try
+        {
+            var resp = await Api.GetFromJsonAsync<ApiResponse<QuestionDto>>($"api/questions/{id}");
+            var q = resp?.Data;
+            if (q == null) { errorMsg = "Question not found."; return; }
+            editing = new QuestionEditModel
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                SectionType = q.SectionType,
+                InterestCategoryId = q.InterestCategoryId,
+                AptitudeCategoryId = q.AptitudeCategoryId,
+                Difficulty = string.IsNullOrEmpty(q.Difficulty) ? "Medium" : q.Difficulty,
+                Weightage = q.Weightage,
+                MaxScore = q.MaxScore,
+                Explanation = q.Explanation,
+                ImageUrl = q.ImageUrl,
+                Options = q.Options.Select(o => new OptionEditModel
+                {
+                    OptionText = o.OptionText,
+                    OptionOrder = o.OptionOrder,
+                    IsCorrect = o.IsCorrect,
+                    ScoreValue = o.ScoreValue,
+                    StreamTag = o.StreamTag,
+                    ImageUrl = o.ImageUrl
+                }).ToList()
+            };
+            dialogError = "";
+            StateHasChanged();
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+    }
+
+    void CloseDialog()
+    {
+        editing = null;
+        dialogError = "";
+        StateHasChanged();
+    }
+
+    void AddOption()
+    {
+        if (editing == null) return;
+        editing.Options.Add(new OptionEditModel { OptionOrder = editing.Options.Count + 1 });
+    }
+
+    void RemoveOption(int idx)
+    {
+        if (editing == null || idx < 0 || idx >= editing.Options.Count) return;
+        editing.Options.RemoveAt(idx);
+        for (int i = 0; i < editing.Options.Count; i++) editing.Options[i].OptionOrder = i + 1;
+    }
+
+    async Task<string?> UploadFileAsync(IBrowserFile file, string folder)
+    {
+        const long maxBytes = 5 * 1024 * 1024;
+        if (file.Size > maxBytes) { dialogError = "File too large (max 5 MB)."; return null; }
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream(maxBytes);
+            var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(streamContent, "file", file.Name);
+            content.Add(new StringContent(folder), "folder");
+
+            var resp = await Api.PostMultipartAsync("api/uploads/image", content);
+            if (!resp.IsSuccessStatusCode)
+            {
+                dialogError = $"Upload failed ({(int)resp.StatusCode}). Make sure you're logged in as Admin.";
+                return null;
+            }
+            var result = await resp.Content.ReadFromJsonAsync<ApiResponse<UploadResultDto>>();
+            return result?.Data?.Url;
+        }
+        catch (Exception ex) { dialogError = $"Upload error: {ex.Message}"; return null; }
+    }
+
+    async Task UploadImageForQuestion(InputFileChangeEventArgs e)
+    {
+        if (editing == null) return;
+        qImgUploading = true; dialogError = ""; StateHasChanged();
+        var url = await UploadFileAsync(e.File, "questions");
+        if (url != null) editing.ImageUrl = url;
+        qImgUploading = false; StateHasChanged();
+    }
+
+    async Task UploadImageForOption(InputFileChangeEventArgs e, int idx)
+    {
+        if (editing == null || idx < 0 || idx >= editing.Options.Count) return;
+        optImgUploadingIdx = idx; dialogError = ""; StateHasChanged();
+        var url = await UploadFileAsync(e.File, "questions");
+        if (url != null) editing.Options[idx].ImageUrl = url;
+        optImgUploadingIdx = -1; StateHasChanged();
+    }
+
+    async Task SaveQuestion()
+    {
+        if (editing == null) return;
+        if (string.IsNullOrWhiteSpace(editing.QuestionText)) { dialogError = "Question text is required."; return; }
+        if (editing.SectionType == "Interest" && editing.InterestCategoryId == null) { dialogError = "Pick an interest category."; return; }
+        if (editing.SectionType == "Aptitude" && editing.AptitudeCategoryId == null) { dialogError = "Pick an aptitude category."; return; }
+
+        savingDialog = true; dialogError = ""; StateHasChanged();
+        try
+        {
+            var dto = new QuestionCreateDto
+            {
+                QuestionText = editing.QuestionText.Trim(),
+                QuestionType = "Mcq",
+                SectionType = editing.SectionType,
+                InterestCategoryId = editing.SectionType == "Interest" ? editing.InterestCategoryId : null,
+                AptitudeCategoryId = editing.SectionType == "Aptitude" ? editing.AptitudeCategoryId : null,
+                Difficulty = editing.Difficulty,
+                Weightage = editing.Weightage,
+                MaxScore = editing.MaxScore,
+                Explanation = string.IsNullOrWhiteSpace(editing.Explanation) ? null : editing.Explanation,
+                ImageUrl = string.IsNullOrWhiteSpace(editing.ImageUrl) ? null : editing.ImageUrl,
+                Options = editing.SectionType == "Interest"
+                    ? new List<OptionCreateDto>()
+                    : editing.Options.Select((o, i) => new OptionCreateDto
+                    {
+                        OptionText = o.OptionText ?? "",
+                        OptionOrder = i + 1,
+                        IsCorrect = o.IsCorrect,
+                        ScoreValue = o.ScoreValue,
+                        StreamTag = string.IsNullOrEmpty(o.StreamTag) ? null : o.StreamTag,
+                        ImageUrl = string.IsNullOrWhiteSpace(o.ImageUrl) ? null : o.ImageUrl
+                    }).ToList()
+            };
+
+            var resp = editing.Id > 0
+                ? await Api.PutAsJsonAsync($"api/questions/{editing.Id}", dto)
+                : await Api.PostAsJsonAsync("api/questions", dto);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                successMsg = editing.Id > 0 ? "Question updated." : "Question created.";
+                CloseDialog();
+                await Load();
+            }
+            else
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                dialogError = $"Save failed ({(int)resp.StatusCode}): {body}";
+            }
+        }
+        catch (Exception ex) { dialogError = ex.Message; }
+        savingDialog = false; StateHasChanged();
+    }
+
+    // ─── Editor models / response DTOs ───
+    class QuestionEditModel
+    {
+        public long Id { get; set; }
+        public string QuestionText { get; set; } = "";
+        public string SectionType { get; set; } = "Interest";
+        public long? InterestCategoryId { get; set; }
+        public long? AptitudeCategoryId { get; set; }
+        public string Difficulty { get; set; } = "Medium";
+        public decimal Weightage { get; set; } = 1m;
+        public decimal MaxScore { get; set; } = 1m;
+        public string? Explanation { get; set; }
+        public string? ImageUrl { get; set; }
+        public List<OptionEditModel> Options { get; set; } = new();
+    }
+
+    class OptionEditModel
+    {
+        public string OptionText { get; set; } = "";
+        public int OptionOrder { get; set; }
+        public bool IsCorrect { get; set; }
+        public decimal ScoreValue { get; set; }
+        public string? StreamTag { get; set; }
+        public string? ImageUrl { get; set; }
+    }
+
+    class CategoryDto { public long Id { get; set; } public string Code { get; set; } = ""; public string Name { get; set; } = ""; }
+    class UploadResultDto { public string Url { get; set; } = ""; public string AbsoluteUrl { get; set; } = ""; public string FileName { get; set; } = ""; public long Size { get; set; } }
 }

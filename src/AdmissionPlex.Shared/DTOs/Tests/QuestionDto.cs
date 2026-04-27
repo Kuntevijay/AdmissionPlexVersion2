@@ -28,4 +28,5 @@ public class QuestionOptionDto
     public bool IsCorrect { get; set; }
     public decimal ScoreValue { get; set; }
     public string? StreamTag { get; set; }
+    public string? ImageUrl { get; set; }
 }
