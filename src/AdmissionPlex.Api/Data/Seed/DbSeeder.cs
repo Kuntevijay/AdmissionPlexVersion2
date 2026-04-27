@@ -141,6 +141,25 @@ public static class DbSeeder
                 interestCatsOrdered.Skip(5).Take(5).Select(c => c.Id).ToArray(), Array.Empty<long>()),
         };
 
+        // Create Career Quiz test first (standalone, public, no continuity)
+        if (!await context.Tests.AnyAsync(t => t.Code == "career_quiz"))
+        {
+            var quizTest = new Test
+            {
+                Code = "career_quiz", Title = "Career Quiz", Slug = "career-quiz",
+                TestType = TestType.StreamSelector, Description = "Quick 20-question stream finder. Discover if Science, Commerce, or Arts suits you best.",
+                Icon = "🎯", DisplayOrder = 0, DurationMinutes = 10, Price = 0, IsActive = true,
+                IsPublic = true, IsContinuityFlow = false, RequiresPayment = false
+            };
+            var quizSection = new TestSection { Title = "Stream Selector", SectionType = SectionType.StreamSelector, SectionOrder = 1 };
+            int qo = 1;
+            foreach (var q in await context.Questions.Where(q => q.SectionType == SectionType.StreamSelector && q.IsActive).OrderBy(q => q.Id).ToListAsync())
+                quizSection.Questions.Add(new TestSectionQuestion { QuestionId = q.Id, QuestionOrder = qo++ });
+            quizTest.TotalQuestions = quizSection.Questions.Count;
+            quizTest.Sections.Add(quizSection);
+            context.Tests.Add(quizTest);
+        }
+
         int displayOrder = 1;
         foreach (var (code, title, desc, icon, category, testType, duration, iCatIds, aCatIds) in subTests)
         {
@@ -151,7 +170,8 @@ public static class DbSeeder
                 Code = code, Title = title, Slug = code.Replace("_", "-"),
                 TestType = testType, Category = category, Description = desc,
                 Icon = icon, DisplayOrder = displayOrder++,
-                DurationMinutes = duration, Price = 0, IsActive = true
+                DurationMinutes = duration, Price = 0, IsActive = true,
+                IsContinuityFlow = true, ParentTestCode = "psychometric"
             };
 
             int secOrder = 1;

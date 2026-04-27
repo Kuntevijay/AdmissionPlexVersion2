@@ -5,137 +5,436 @@
 <PageTitle>Test Management - Admin</PageTitle>
 
 <div class="topbar">
-    <div><h2>Test Management</h2><p class="topbar-subtitle">Both tests use questions from the database — import via Question Bank</p></div>
-    <a href="/admin/questions" class="btn btn-primary">📥 Import Questions →</a>
-</div>
-
-<div class="grid-4" style="margin-bottom:24px;">
-    <div class="stat-card"><div class="stat-label">Total tests</div><div class="stat-value">2</div><div style="font-size:12px; color:var(--ap-text-muted);">Quiz + Psychometric</div></div>
-    <div class="stat-card"><div class="stat-label">Quiz questions</div><div class="stat-value">@quizCount</div></div>
-    <div class="stat-card"><div class="stat-label">Interest questions</div><div class="stat-value">@interestCount</div></div>
-    <div class="stat-card"><div class="stat-label">Aptitude questions</div><div class="stat-value">@aptitudeCount</div></div>
-</div>
-
-<!-- Test 1: Career Quiz -->
-<div class="card" style="margin-bottom:24px; border-left:4px solid var(--ap-green); border-radius:0 12px 12px 0;">
-    <div style="display:flex; justify-content:space-between; align-items:start;">
-        <div>
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                <span style="font-size:24px;">🎯</span>
-                <h3 style="font-size:18px; font-weight:700; margin:0;">Career Quiz</h3>
-                <span class="badge badge-green">Public</span>
-                <span class="badge @(quizCount > 0 ? "badge-green" : "badge-coral")">@quizCount questions from DB</span>
-            </div>
-            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:8px;">
-                Quick stream finder. Each option is tagged to Science / Commerce / Arts. Shows percentage breakdown + career matches. No login needed.
-            </p>
-        </div>
-        <a href="/quiz" target="_blank" class="btn btn-outline btn-sm">Preview ↗</a>
+    <div><h2>Test Management</h2><p class="topbar-subtitle">Create, edit, and manage all tests</p></div>
+    <div class="topbar-actions">
+        <button class="btn btn-outline" @onclick="() => showCats = !showCats">📂 Categories</button>
+        <a href="/admin/questions" class="btn btn-outline">📥 Questions</a>
+        <button class="btn btn-primary" @onclick="OpenNew">+ New Test</button>
     </div>
-    @if (quizCount == 0)
-    {
-        <div style="margin-top:12px; padding:12px 16px; background:rgba(239,68,68,0.06); border-radius:8px; font-size:13px; color:var(--ap-red);">
-            ⚠ No quiz questions imported yet. Import a JSON file with <code>section_type: "quiz"</code> to populate.
-        </div>
-    }
 </div>
 
-<!-- Test 2: Psychometric Assessment -->
-<div class="card" style="margin-bottom:16px; border-left:4px solid var(--ap-lavender); border-radius:0 12px 12px 0;">
-    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:16px;">
-        <div>
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                <span style="font-size:24px;">🧠</span>
-                <h3 style="font-size:18px; font-weight:700; margin:0;">Psychometric Career Assessment</h3>
-                <span class="badge badge-green">Login required</span>
-            </div>
-            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6;">
-                9 sequential sub-tests. Student completes each one to unlock the next. Full career report generated after all 9.
-            </p>
-        </div>
-    </div>
+@if (!string.IsNullOrEmpty(msg))
+{
+    <div style="background:rgba(34,197,94,0.1); color:var(--ap-green); padding:10px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@msg</div>
+}
+@if (!string.IsNullOrEmpty(err))
+{
+    <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:10px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@err</div>
+}
 
-    @if (subTests.Any())
-    {
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-            @foreach (var t in subTests)
-            {
-                <div style="background:var(--ap-bg); border-radius:10px; padding:14px 16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:18px;">@t.Icon</span>
-                        <span class="badge @CategoryBadge(t.Category)" style="font-size:10px;">@t.Category</span>
+@if (showCats)
+{
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">Interest & Aptitude Categories</h3>
+        <div class="grid-2" style="gap:24px;">
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h4 style="font-size:14px; font-weight:600; color:var(--ap-coral);">Interest (@interestCats.Count)</h4>
+                    <button class="btn btn-sm btn-primary" @onclick='() => { catType = "interest"; showCatForm = true; catForm = new CatModel(); }'>+ Add</button>
+                </div>
+                @foreach (var c in interestCats)
+                {
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--ap-bg); border-radius:6px; margin-bottom:4px; font-size:13px;">
+                        <span><strong>@c.Code</strong> — @c.Name</span>
+                        <span style="font-size:11px; color:var(--ap-text-muted);">Order: @c.DisplayOrder</span>
                     </div>
-                    <div style="font-weight:600; font-size:13px; margin-bottom:2px;">@t.Title</div>
-                    <div style="font-size:11px; color:@(t.TotalQuestions > 0 ? "var(--ap-text-muted)" : "var(--ap-red)");">
-                        @t.TotalQuestions questions · @t.DurationMinutes min
-                        @if (t.TotalQuestions == 0) { <span>⚠ import needed</span> }
+                }
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h4 style="font-size:14px; font-weight:600; color:var(--ap-sky);">Aptitude (@aptitudeCats.Count)</h4>
+                    <button class="btn btn-sm btn-primary" @onclick='() => { catType = "aptitude"; showCatForm = true; catForm = new CatModel(); }'>+ Add</button>
+                </div>
+                @foreach (var c in aptitudeCats)
+                {
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--ap-bg); border-radius:6px; margin-bottom:4px; font-size:13px;">
+                        <span><strong>@c.Code</strong> — @c.Name</span>
+                        <span style="font-size:11px; color:var(--ap-text-muted);">Order: @c.DisplayOrder</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (showCatForm)
+        {
+            <div style="margin-top:16px; padding:16px; border:1px dashed var(--ap-primary); border-radius:8px;">
+                <h4 style="font-size:14px; margin-bottom:8px;">Add @catType category</h4>
+                <div class="grid-4" style="gap:8px; margin-bottom:8px;">
+                    <div class="form-group"><label class="form-label">Code</label><input class="form-input" @bind="catForm.Code" placeholder="XX" /></div>
+                    <div class="form-group"><label class="form-label">Name</label><input class="form-input" @bind="catForm.Name" placeholder="Category Name" /></div>
+                    <div class="form-group"><label class="form-label">Description</label><input class="form-input" @bind="catForm.Description" /></div>
+                    <div class="form-group"><label class="form-label">Order</label><input class="form-input" type="number" @bind="catForm.DisplayOrder" /></div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary btn-sm" @onclick="SaveCategory">Save</button>
+                    <button class="btn btn-outline btn-sm" @onclick="() => showCatForm = false">Cancel</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (showForm)
+{
+    <div class="card" style="margin-bottom:24px; border:2px solid var(--ap-primary);">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">@(editId > 0 ? "Edit test" : "Create new test")</h3>
+        <div class="grid-3" style="gap:12px; margin-bottom:12px;">
+            <div class="form-group"><label class="form-label">Code *</label><input class="form-input" @bind="f.Code" placeholder="career_quiz" /></div>
+            <div class="form-group"><label class="form-label">Title *</label><input class="form-input" @bind="f.Title" /></div>
+            <div class="form-group"><label class="form-label">Icon</label><input class="form-input" @bind="f.Icon" placeholder="📝" /></div>
+        </div>
+        <div class="grid-3" style="gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+                <label class="form-label">Test type</label>
+                <select class="form-select" @bind="f.TestType">
+                    <option value="StreamSelector">Stream Selector (Quiz)</option>
+                    <option value="PsychometricFull">Psychometric Full</option>
+                    <option value="InterestSurvey">Interest Survey</option>
+                    <option value="AptitudeTest">Aptitude Test</option>
+                    <option value="IQTest">IQ Test</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" @bind="f.Category">
+                    <option value="">— None —</option>
+                    <option value="Interest">Interest</option>
+                    <option value="Aptitude">Aptitude</option>
+                    <option value="IQ">IQ</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Duration (min)</label><input class="form-input" type="number" @bind="f.DurationMinutes" /></div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" @bind="f.Description" rows="2"></textarea>
+        </div>
+        <div class="grid-3" style="gap:12px; margin-bottom:12px;">
+            <div class="form-group"><label class="form-label">Price (0 = free)</label><input class="form-input" type="number" @bind="f.Price" /></div>
+            <div class="form-group"><label class="form-label">Display order</label><input class="form-input" type="number" @bind="f.DisplayOrder" /></div>
+            <div class="form-group"><label class="form-label">Parent test code</label><input class="form-input" @bind="f.ParentTestCode" placeholder="psychometric" /></div>
+        </div>
+        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px; padding:14px 16px; background:var(--ap-bg); border-radius:8px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" @bind="f.IsActive" /> Active</label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" @bind="f.IsPublic" /> Public</label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" @bind="f.RequiresPayment" /> Requires payment</label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" @bind="f.IsContinuityFlow" /> Continuity flow</label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" @bind="f.IncludesCounsellorSession" /> Counsellor</label>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" @onclick="SaveTest" disabled="@saving">@(saving ? "Saving..." : editId > 0 ? "Update" : "Create")</button>
+            <button class="btn btn-outline" @onclick="() => showForm = false">Cancel</button>
+        </div>
+    </div>
+}
+
+<div class="grid-4" style="margin-bottom:20px;">
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">@(tests?.Count ?? 0)</div></div>
+    <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value" style="color:var(--ap-green);">@(tests?.Count(t => t.IsActive) ?? 0)</div></div>
+    <div class="stat-card"><div class="stat-label">Free</div><div class="stat-value">@(tests?.Count(t => !t.RequiresPayment) ?? 0)</div></div>
+    <div class="stat-card"><div class="stat-label">Paid</div><div class="stat-value" style="color:var(--ap-gold);">@(tests?.Count(t => t.RequiresPayment) ?? 0)</div></div>
+</div>
+
+@if (tests == null)
+{
+    <div class="spinner"></div>
+}
+else if (!tests.Any())
+{
+    <div class="card" style="padding:60px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:16px;">📊</div>
+        <h3>No tests yet</h3>
+        <p style="color:var(--ap-text-muted);">Click "+ New Test" to create one.</p>
+    </div>
+}
+else
+{
+    var standalone = tests.Where(t => string.IsNullOrEmpty(t.ParentTestCode)).OrderBy(t => t.DisplayOrder).ToList();
+    var grouped = tests.Where(t => !string.IsNullOrEmpty(t.ParentTestCode)).GroupBy(t => t.ParentTestCode).ToList();
+
+    @foreach (var t in standalone)
+    {
+        <div class="card" style="margin-bottom:10px; border-left:4px solid @(t.IsActive ? "var(--ap-green)" : "var(--ap-border)"); border-radius:0 12px 12px 0; opacity:@(t.IsActive ? "1" : "0.6");">
+            <div style="display:flex; justify-content:space-between; align-items:start; gap:16px;">
+                <div style="flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                        <span style="font-size:20px;">@(t.Icon ?? "📝")</span>
+                        <h3 style="font-size:15px; font-weight:700; margin:0;">@t.Title</h3>
+                        @if (t.IsActive) { <span class="badge badge-green" style="font-size:10px;">Active</span> } else { <span class="badge badge-coral" style="font-size:10px;">Inactive</span> }
+                        @if (t.IsPublic) { <span class="badge badge-sky" style="font-size:10px;">Public</span> }
+                        @if (t.RequiresPayment) { <span class="badge badge-gold" style="font-size:10px;">Paid</span> } else { <span class="badge badge-green" style="font-size:10px;">Free</span> }
+                    </div>
+                    @if (!string.IsNullOrEmpty(t.Description)) { <p style="font-size:12px; color:var(--ap-text-muted); margin-bottom:6px;">@t.Description</p> }
+                    <div style="display:flex; gap:16px; font-size:11px; color:var(--ap-text-muted);">
+                        <span>Code: <strong>@t.Code</strong></span><span>@t.TotalQuestions q</span><span>@t.DurationMinutes min</span>
                     </div>
                 </div>
-            }
+                <div style="display:flex; gap:6px; flex-shrink:0;">
+                    <button class="btn btn-sm @(t.IsActive ? "btn-outline" : "btn-primary")" style="font-size:11px; padding:4px 10px;" @onclick="() => ToggleActive(t)">@(t.IsActive ? "Deactivate" : "Activate")</button>
+                    <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 10px;" @onclick="() => EditTest(t)">Edit</button>
+                    <button class="btn btn-sm btn-danger" style="font-size:11px; padding:4px 10px;" @onclick="() => DeleteTest(t.Id)">Del</button>
+                </div>
+            </div>
         </div>
     }
-    else
-    {
-        <div style="padding:24px; text-align:center; background:var(--ap-bg); border-radius:10px; color:var(--ap-text-muted);">
-            No sub-tests configured. Seed sample data or import questions.
-        </div>
-    }
-</div>
 
-<!-- Import format guide -->
-<div class="card">
-    <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">JSON import format (same for both tests)</h3>
-    <div class="grid-2" style="gap:16px;">
-        <div>
-            <div style="font-weight:600; font-size:13px; color:var(--ap-sky); margin-bottom:4px;">Aptitude (MCQ)</div>
-            <div style="font-family:monospace; font-size:10px; background:var(--ap-bg); padding:8px; border-radius:6px; white-space:pre; line-height:1.5;">{ "section": "number_calculation",
-  "aptitude_code": "NC",
-  "questions": [{
-    "question_en": "ADD (29 + 21)",
-    "question_mr": "बेरीज करा",
-    "options": {"a":"50","b":"51","c":"49","d":"52"},
-    "correct_answer": "a"
-  }]
-}</div>
+    @foreach (var group in grouped)
+    {
+        var subs = group.OrderBy(t => t.DisplayOrder).ToList();
+        <div class="card" style="margin-bottom:10px; border-left:4px solid var(--ap-lavender); border-radius:0 12px 12px 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:20px;">🧠</span>
+                    <h3 style="font-size:15px; font-weight:700; margin:0;">Psychometric Assessment</h3>
+                    <span class="badge badge-lavender" style="font-size:10px;">@subs.Count sub-tests · Sequential</span>
+                    <span class="badge @(subs.All(t => t.IsActive) ? "badge-green" : "badge-coral")" style="font-size:10px;">@(subs.All(t => t.IsActive) ? "Active" : "Partial")</span>
+                </div>
+                <span style="font-size:11px; color:var(--ap-text-muted);">Parent: <strong>@group.Key</strong></span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                @foreach (var t in subs)
+                {
+                    <div style="background:var(--ap-bg); border-radius:8px; padding:10px 12px; opacity:@(t.IsActive ? "1" : "0.5");">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <span style="font-size:16px;">@(t.Icon ?? "📝")</span>
+                            <span class="badge @(t.Category == "Interest" ? "badge-coral" : t.Category == "IQ" ? "badge-lavender" : "badge-sky")" style="font-size:9px;">@t.Category</span>
+                        </div>
+                        <div style="font-weight:600; font-size:12px; margin-bottom:2px;">@t.Title</div>
+                        <div style="font-size:10px; color:var(--ap-text-muted);">@t.TotalQuestions q · @t.DurationMinutes min</div>
+                        <div style="display:flex; gap:4px; margin-top:6px;">
+                            <button class="btn btn-outline btn-sm" style="font-size:9px; padding:2px 6px;" @onclick="() => EditTest(t)">Edit</button>
+                            <button class="btn btn-sm @(t.IsActive ? "btn-outline" : "btn-primary")" style="font-size:9px; padding:2px 6px;" @onclick="() => ToggleActive(t)">@(t.IsActive ? "Off" : "On")</button>
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
-        <div>
-            <div style="font-weight:600; font-size:13px; color:var(--ap-green); margin-bottom:4px;">Quiz (stream-tagged)</div>
-            <div style="font-family:monospace; font-size:10px; background:var(--ap-bg); padding:8px; border-radius:6px; white-space:pre; line-height:1.5;">{ "section": "career_quiz",
-  "section_type": "quiz",
-  "questions": [{
-    "question_en": "You prefer?",
-    "options": {"a":"Lab","b":"Business","c":"Art"},
-    "option_streams": {"a":"Science","b":"Commerce","c":"Arts"}
-  }]
-}</div>
-        </div>
-    </div>
-</div>
+    }
+}
 
 @code {
-    private List<SubTestInfo> subTests = new();
-    private int quizCount, interestCount, aptitudeCount;
+    private List<TestItem>? tests;
+    private List<CatItem> interestCats = new();
+    private List<CatItem> aptitudeCats = new();
+    private bool showForm = false;
+    private bool saving = false;
+    private bool showCats = false;
+    private bool showCatForm = false;
+    private string catType = "interest";
+    private long editId = 0;
+    private string msg = "";
+    private string err = "";
+    private FormModel f = new();
+    private CatModel catForm = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (firstRender)
+        {
+            await Load();
+            StateHasChanged();
+        }
+    }
+
+    private async Task Load()
+    {
         try
         {
-            var resp = await Api.GetFromJsonAsync<ApiResponse<List<SubTestInfo>>>("api/tests");
-            subTests = (resp?.Data ?? new()).Where(t => t.TestType != "StreamSelector").OrderBy(t => t.DisplayOrder).ToList();
-
-            var qResp = await Api.GetFromJsonAsync<ApiResponse<List<QInfo>>>("api/questions?activeOnly=true");
-            var allQ = qResp?.Data ?? new();
-            quizCount = allQ.Count(q => q.SectionType == "StreamSelector");
-            interestCount = allQ.Count(q => q.SectionType == "Interest");
-            aptitudeCount = allQ.Count(q => q.SectionType == "Aptitude");
+            var resp = await Api.GetFromJsonAsync<ApiResponse<List<TestItem>>>("api/tests");
+            tests = resp?.Data ?? new();
+            interestCats = (await Api.GetFromJsonAsync<ApiResponse<List<CatItem>>>("api/interest-categories"))?.Data ?? new();
+            aptitudeCats = (await Api.GetFromJsonAsync<ApiResponse<List<CatItem>>>("api/aptitude-categories"))?.Data ?? new();
         }
-        catch { }
+        catch { tests = new(); }
+    }
+
+    private async Task SaveCategory()
+    {
+        msg = ""; err = "";
+        try
+        {
+            var url = catType == "interest" ? "api/interest-categories" : "api/aptitude-categories";
+            var resp = await Api.PostAsJsonAsync(url, catForm);
+            if (resp.IsSuccessStatusCode)
+            {
+                msg = "Category added.";
+                showCatForm = false;
+                await Load();
+            }
+            else
+            {
+                var e = await resp.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                err = e?.Errors?.FirstOrDefault() ?? "Failed.";
+            }
+        }
+        catch (Exception ex) { err = ex.Message; }
         StateHasChanged();
     }
 
-    string CategoryBadge(string? c) => c switch { "Interest" => "badge-coral", "Aptitude" => "badge-sky", "IQ" => "badge-lavender", _ => "badge-primary" };
+    private void OpenNew()
+    {
+        editId = 0;
+        f = new FormModel { IsActive = true, TestType = "PsychometricFull", Icon = "📝" };
+        showForm = true;
+    }
 
-    class SubTestInfo { public long Id { get; set; } public string Code { get; set; } = ""; public string Title { get; set; } = ""; public string TestType { get; set; } = ""; public string? Category { get; set; } public string? Icon { get; set; } public int DisplayOrder { get; set; } public int DurationMinutes { get; set; } public int TotalQuestions { get; set; } public bool IsActive { get; set; } }
-    class QInfo { public string SectionType { get; set; } = ""; }
+    private void EditTest(TestItem t)
+    {
+        editId = t.Id;
+        f = new FormModel
+        {
+            Code = t.Code,
+            Title = t.Title,
+            TestType = t.TestType,
+            Category = t.Category,
+            Description = t.Description,
+            Icon = t.Icon,
+            DisplayOrder = t.DisplayOrder,
+            DurationMinutes = t.DurationMinutes,
+            Price = t.Price,
+            IsActive = t.IsActive,
+            IsPublic = t.IsPublic,
+            RequiresPayment = t.RequiresPayment,
+            IsContinuityFlow = t.IsContinuityFlow,
+            ParentTestCode = t.ParentTestCode,
+            Instructions = t.Instructions,
+            IncludesCounsellorSession = t.IncludesCounsellorSession
+        };
+        showForm = true;
+    }
+
+    private async Task SaveTest()
+    {
+        if (string.IsNullOrWhiteSpace(f.Code) || string.IsNullOrWhiteSpace(f.Title))
+        {
+            err = "Code and Title are required.";
+            return;
+        }
+        saving = true; msg = ""; err = "";
+        StateHasChanged();
+        try
+        {
+            HttpResponseMessage resp;
+            if (editId > 0)
+                resp = await Api.PutAsJsonAsync($"api/tests/{editId}", f);
+            else
+                resp = await Api.PostAsJsonAsync("api/tests", f);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                msg = editId > 0 ? "Test updated." : "Test created.";
+                showForm = false;
+                await Load();
+            }
+            else
+            {
+                err = "Save failed.";
+            }
+        }
+        catch (Exception ex) { err = ex.Message; }
+        saving = false;
+        StateHasChanged();
+    }
+
+    private async Task ToggleActive(TestItem t)
+    {
+        msg = ""; err = "";
+        try
+        {
+            var dto = new FormModel
+            {
+                Code = t.Code, Title = t.Title, TestType = t.TestType, Category = t.Category,
+                Description = t.Description, Icon = t.Icon, DisplayOrder = t.DisplayOrder,
+                DurationMinutes = t.DurationMinutes, Price = t.Price,
+                IsActive = !t.IsActive,
+                IsPublic = t.IsPublic, RequiresPayment = t.RequiresPayment,
+                IsContinuityFlow = t.IsContinuityFlow, ParentTestCode = t.ParentTestCode,
+                Instructions = t.Instructions, IncludesCounsellorSession = t.IncludesCounsellorSession
+            };
+            var resp = await Api.PutAsJsonAsync($"api/tests/{t.Id}", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                msg = t.IsActive ? "Deactivated." : "Activated.";
+                await Load();
+            }
+            else { err = "Toggle failed."; }
+        }
+        catch (Exception ex) { err = ex.Message; }
+        StateHasChanged();
+    }
+
+    private async Task DeleteTest(long id)
+    {
+        msg = ""; err = "";
+        try
+        {
+            var resp = await Api.DeleteAsync($"api/tests/{id}");
+            if (resp.IsSuccessStatusCode)
+            {
+                msg = "Deleted.";
+                await Load();
+            }
+            else { err = "Delete failed."; }
+        }
+        catch (Exception ex) { err = ex.Message; }
+        StateHasChanged();
+    }
+
+    private class TestItem
+    {
+        public long Id { get; set; }
+        public string Code { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string TestType { get; set; } = "";
+        public string? Category { get; set; }
+        public string? Description { get; set; }
+        public string? Icon { get; set; }
+        public int DisplayOrder { get; set; }
+        public int DurationMinutes { get; set; }
+        public int TotalQuestions { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsPublic { get; set; }
+        public bool RequiresPayment { get; set; }
+        public bool IsContinuityFlow { get; set; }
+        public string? ParentTestCode { get; set; }
+        public string? Instructions { get; set; }
+        public bool IncludesCounsellorSession { get; set; }
+    }
+
+    private class FormModel
+    {
+        public string Code { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string TestType { get; set; } = "PsychometricFull";
+        public string? Category { get; set; }
+        public string? Description { get; set; }
+        public string? Icon { get; set; } = "📝";
+        public int DisplayOrder { get; set; }
+        public int DurationMinutes { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsPublic { get; set; }
+        public bool RequiresPayment { get; set; }
+        public bool IsContinuityFlow { get; set; }
+        public string? ParentTestCode { get; set; }
+        public string? Instructions { get; set; }
+        public bool IncludesCounsellorSession { get; set; }
+    }
+
+    private class CatItem
+    {
+        public long Id { get; set; }
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public int DisplayOrder { get; set; }
+    }
+
+    private class CatModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public int DisplayOrder { get; set; }
+    }
 }

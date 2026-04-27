@@ -5,201 +5,134 @@
 
 <PageTitle>My Tests - AdmissionPlex</PageTitle>
 
-<div class="topbar">
-    <div><h2>My Tests</h2><p class="topbar-subtitle">Take assessments and view your results</p></div>
-</div>
+<div class="topbar"><h2>My Tests</h2></div>
 
-<!-- Available Tests from API -->
-<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Available Assessments</h3>
-
-@if (availableTests == null)
+@if (loading)
+{ <div class="spinner"></div> }
+else if (tests == null || !tests.Any())
+{ <div class="card" style="padding:60px; text-align:center;"><div style="font-size:48px; margin-bottom:16px;">📝</div><h3>No tests available</h3><p style="color:var(--ap-text-muted);">Tests will appear here once the admin configures them.</p></div> }
+else
 {
-    <div class="spinner"></div>
-}
-else if (availableTests.Any())
-{
-    <div style="margin-bottom:32px;">
-        @foreach (var test in availableTests.Where(t => t.IsActive))
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+        @foreach (var t in tests)
         {
-            <div class="card" style="border-left:4px solid var(--ap-primary); margin-bottom:16px;">
-                <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <div style="flex:1;">
-                        <span class="badge badge-green" style="margin-bottom:8px;">FREE</span>
-                        <h4 style="font-size:18px; margin-bottom:4px;">@test.Title</h4>
-                        <p style="font-size:13px; color:var(--ap-text-muted); margin-bottom:12px;">
-                            @test.DurationMinutes min · @test.TotalQuestions questions · 17 assessment modules
-                        </p>
-                        @if (!string.IsNullOrEmpty(test.Description))
-                        {
-                            <p style="font-size:13px; color:var(--ap-text-muted); line-height:1.6; margin-bottom:12px;">@test.Description</p>
-                        }
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <span class="badge badge-sky">10 Interest modules</span>
-                            <span class="badge badge-coral">7 Aptitude modules</span>
-                            <span class="badge badge-lavender">IQ Benchmark</span>
-                            <span class="badge badge-gold">Career Suitability</span>
+            var progress = GetProgress(t);
+            var borderColor = progress.Status switch { "Completed" => "var(--ap-green)", "InProgress" => "var(--ap-gold)", _ => "var(--ap-primary)" };
+
+            <div class="card" style="border-top:3px solid @borderColor; display:flex; flex-direction:column;">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                    <span style="font-size:28px;">@(t.Icon ?? "📝")</span>
+                    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                        @if (t.RequiresPayment) { <span class="badge badge-gold" style="font-size:10px;">₹@t.Price</span> }
+                        else { <span class="badge badge-green" style="font-size:10px;">Free</span> }
+                        @if (t.IsContinuityFlow) { <span class="badge badge-lavender" style="font-size:10px;">Sequential</span> }
+                    </div>
+                </div>
+
+                <h4 style="font-size:15px; font-weight:700; margin-bottom:4px;">@t.Title</h4>
+                @if (!string.IsNullOrEmpty(t.Description))
+                { <p style="font-size:12px; color:var(--ap-text-muted); line-height:1.5; margin-bottom:10px;">@t.Description</p> }
+
+                <div style="display:flex; gap:12px; font-size:11px; color:var(--ap-text-muted); margin-bottom:12px;">
+                    @if (!t.IsContinuityFlow) { <span>@t.TotalQuestions questions</span> }
+                    <span>@t.DurationMinutes min</span>
+                    @if (t.IncludesCounsellorSession) { <span>+ Counsellor</span> }
+                </div>
+
+                @if (t.IsContinuityFlow && progress.Total > 0)
+                {
+                    <div style="margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+                            <span style="color:var(--ap-text-muted);">Progress</span>
+                            <strong>@progress.Completed / @progress.Total</strong>
+                        </div>
+                        <div style="height:6px; background:var(--ap-border); border-radius:3px; overflow:hidden;">
+                            <div style="height:100%; width:@(progress.Total > 0 ? progress.Completed * 100 / progress.Total : 0)%; background:var(--ap-primary); border-radius:3px;"></div>
                         </div>
                     </div>
-                    <button class="btn btn-primary"
-                            @onclick="() => StartTest(test.Id)"
-                            disabled="@startingTest">
-                        @(startingTestId == test.Id ? "Starting..." : "Start Assessment →")
-                    </button>
-                </div>
+                }
+
+                <div style="flex:1;"></div>
+
+                @if (progress.Status == "Completed" && t.IsContinuityFlow)
+                { <a href="/student/assessment/report" class="btn btn-primary btn-sm" style="width:100%; justify-content:center;">View Report →</a> }
+                else if (progress.Status == "Completed")
+                { <button class="btn btn-outline btn-sm" style="width:100%; justify-content:center;" disabled>✓ Completed</button> }
+                else if (progress.Status == "InProgress")
+                { <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;" @onclick="() => StartTest(t)">▶ Continue</button> }
+                else
+                { <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;" @onclick="() => StartTest(t)">▶ Start Test</button> }
             </div>
         }
     </div>
-
-    <!-- Career Quiz Promo -->
-    <div class="card" style="border-left:4px solid var(--ap-gold); margin-bottom:32px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <h4 style="font-size:16px; margin-bottom:4px;">Quick Career Quiz</h4>
-                <p style="font-size:13px; color:var(--ap-text-muted);">Not ready for the full assessment? Take a quick 5-minute quiz to find your ideal stream.</p>
-            </div>
-            <a href="/quiz" class="btn btn-outline btn-sm">Take Quiz →</a>
-        </div>
-    </div>
-}
-else
-{
-    <div class="card" style="padding:40px; text-align:center; color:var(--ap-text-muted); margin-bottom:32px;">
-        <p>No tests available yet. Admin needs to import test data.</p>
-    </div>
-}
-
-@if (!string.IsNullOrEmpty(errorMsg))
-{
-    <div style="background:rgba(239,68,68,0.1); color:var(--ap-red); padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px;">@errorMsg</div>
-}
-
-<!-- Test History -->
-<h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Test History</h3>
-@if (attempts == null)
-{
-    <div class="spinner"></div>
-}
-else if (attempts.Any())
-{
-    <div class="card" style="padding:0; overflow:hidden;">
-        <table class="data-table">
-            <thead><tr><th>Test</th><th>Date</th><th>Status</th><th>IQ Score</th><th>Action</th></tr></thead>
-            <tbody>
-                @foreach (var a in attempts)
-                {
-                    <tr>
-                        <td style="font-weight:600;">@a.TestTitle</td>
-                        <td>@a.StartedAt.ToString("dd MMM yyyy")</td>
-                        <td><span class="badge @(a.Status == "Completed" ? "badge-green" : "badge-gold")">@a.Status</span></td>
-                        <td>@(a.OverallIqScore?.ToString() ?? "—")</td>
-                        <td>
-                            @if (a.Status == "Completed")
-                            {
-                                <a href="/student/results/@a.Id" class="btn btn-sm btn-outline">View Report</a>
-                            }
-                            else if (a.Status == "InProgress" || a.Status == "Started")
-                            {
-                                <button class="btn btn-sm btn-primary" @onclick="() => ContinueTest(a.Id)">Continue</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
-else
-{
-    <div class="card" style="padding:40px; text-align:center; color:var(--ap-text-muted);">No tests taken yet. Choose a test above to get started!</div>
 }
 
 @code {
-    private List<TestInfo>? availableTests;
-    private List<TestAttemptDto>? attempts;
-    private bool startingTest = false;
-    private long startingTestId = 0;
-    private string errorMsg = "";
+    List<TestCard>? tests;
+    AssessmentProg? assessmentProg;
+    Dictionary<long, AttemptInfo> attemptMap = new();
+    bool loading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await LoadData();
-            StateHasChanged();
-        }
+        if (firstRender) { await LoadData(); StateHasChanged(); }
     }
 
-    private async Task LoadData()
+    async Task LoadData()
     {
         try
         {
-            var testsResponse = await Api.GetFromJsonAsync<ApiResponse<List<TestInfo>>>("api/tests");
-            availableTests = testsResponse?.Data ?? new();
-        }
-        catch { availableTests = new(); }
+            var resp = await Api.GetFromJsonAsync<ApiResponse<List<TestCard>>>("api/tests");
+            tests = (resp?.Data ?? new()).Where(t => t.IsActive).OrderBy(t => t.DisplayOrder).ToList();
 
-        try
-        {
-            var attemptsResponse = await Api.GetFromJsonAsync<ApiResponse<List<TestAttemptDto>>>("api/tests/my-attempts");
-            attempts = attemptsResponse?.Data ?? new();
-        }
-        catch { attempts = new(); }
-    }
-
-    private async Task StartTest(long testId)
-    {
-        errorMsg = "";
-        startingTest = true;
-        startingTestId = testId;
-        StateHasChanged();
-
-        try
-        {
-            var response = await Api.PostAsJsonAsync($"api/tests/{testId}/start", new { });
-            if (response.IsSuccessStatusCode)
+            try { assessmentProg = (await Api.GetFromJsonAsync<ApiResponse<AssessmentProg>>("api/assessment/overview"))?.Data; } catch { }
+            try
             {
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse<StartResult>>();
-                if (result?.Data != null)
+                var att = (await Api.GetFromJsonAsync<ApiResponse<List<AttemptInfo>>>("api/tests/my-attempts"))?.Data;
+                if (att != null) attemptMap = att.GroupBy(a => a.TestId).ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CompletedAt).First());
+            } catch { }
+        }
+        catch { tests = new(); }
+        loading = false;
+    }
+
+    (string Status, int Completed, int Total) GetProgress(TestCard t)
+    {
+        if (t.IsContinuityFlow && assessmentProg != null)
+        {
+            if (assessmentProg.AllCompleted) return ("Completed", assessmentProg.CompletedCount, assessmentProg.TotalCount);
+            if (assessmentProg.CompletedCount > 0) return ("InProgress", assessmentProg.CompletedCount, assessmentProg.TotalCount);
+            return ("Available", 0, assessmentProg.TotalCount);
+        }
+        if (attemptMap.TryGetValue(t.Id, out var a))
+            return (a.Status == "Completed" ? "Completed" : "InProgress", 0, 1);
+        return ("Available", 0, 0);
+    }
+
+    async Task StartTest(TestCard t)
+    {
+        if (t.IsContinuityFlow)
+        {
+            var next = assessmentProg?.Tests?.FirstOrDefault(st => st.Status == "Available" || st.Status == "InProgress");
+            Nav.NavigateTo(next != null ? $"/student/assessment/test/{next.Code}" : $"/student/assessment/test/{t.Code}");
+        }
+        else
+        {
+            try
+            {
+                var resp = await Api.PostAsJsonAsync($"api/tests/{t.Id}/start", new { });
+                if (resp.IsSuccessStatusCode)
                 {
-                    Nav.NavigateTo($"/student/take-test/{result.Data.AttemptId}");
+                    var r = await resp.Content.ReadFromJsonAsync<ApiResponse<StartRes>>();
+                    if (r?.Data != null) Nav.NavigateTo($"/student/take-test/{r.Data.AttemptId}");
                 }
-            }
-            else
-            {
-                var error = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
-                errorMsg = error?.Errors?.FirstOrDefault() ?? "Could not start test. Please try again.";
-            }
+            } catch { }
         }
-        catch (Exception ex)
-        {
-            errorMsg = $"Error: {ex.Message}";
-        }
-
-        startingTest = false;
-        startingTestId = 0;
-        StateHasChanged();
     }
 
-    private void ContinueTest(long attemptId)
-    {
-        Nav.NavigateTo($"/student/take-test/{attemptId}");
-    }
-
-    private class TestInfo
-    {
-        public long Id { get; set; }
-        public string Title { get; set; } = "";
-        public string TestType { get; set; } = "";
-        public string? Description { get; set; }
-        public int DurationMinutes { get; set; }
-        public int TotalQuestions { get; set; }
-        public bool IsActive { get; set; }
-        public bool IncludesCounsellorSession { get; set; }
-    }
-
-    private class StartResult
-    {
-        public long AttemptId { get; set; }
-        public Guid AttemptUuid { get; set; }
-    }
+    class TestCard { public long Id{get;set;} public string Code{get;set;}="" ; public string Title{get;set;}=""; public string? Description{get;set;} public string? Icon{get;set;} public int DisplayOrder{get;set;} public int DurationMinutes{get;set;} public int TotalQuestions{get;set;} public decimal Price{get;set;} public bool IsActive{get;set;} public bool IsPublic{get;set;} public bool RequiresPayment{get;set;} public bool IsContinuityFlow{get;set;} public bool IncludesCounsellorSession{get;set;} }
+    class AssessmentProg { public int CompletedCount{get;set;} public int TotalCount{get;set;} public bool AllCompleted{get;set;} public List<SubTest>? Tests{get;set;} }
+    class SubTest { public string Code{get;set;}=""; public string Status{get;set;}=""; }
+    class AttemptInfo { public long TestId{get;set;} public string Status{get;set;}=""; public string? CompletedAt{get;set;} }
+    class StartRes { public long AttemptId{get;set;} }
 }

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using AdmissionPlex.Api.Data;
 using AdmissionPlex.Core.Entities.Tests;
 using AdmissionPlex.Core.Enums;
 using AdmissionPlex.Core.Interfaces.Repositories;
@@ -16,11 +18,13 @@ public class TestsController : ControllerBase
 {
     private readonly IUnitOfWork _uow;
     private readonly ITestScoringService _scoringService;
+    private readonly AppDbContext _context;
 
-    public TestsController(IUnitOfWork uow, ITestScoringService scoringService)
+    public TestsController(IUnitOfWork uow, ITestScoringService scoringService, AppDbContext context)
     {
         _uow = uow;
         _scoringService = scoringService;
+        _context = context;
     }
 
     [HttpGet]
@@ -334,23 +338,67 @@ public class TestsController : ControllerBase
         return student?.Id ?? 0;
     }
 
+    // ── CRUD ──
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateTest([FromBody] CreateTestDto dto)
+    {
+        var test = new Test
+        {
+            Code = dto.Code, Title = dto.Title, Slug = dto.Code.Replace("_", "-"),
+            TestType = Enum.TryParse<TestType>(dto.TestType, true, out var tt) ? tt : TestType.PsychometricFull,
+            Category = dto.Category, Description = dto.Description, Icon = dto.Icon ?? "📝",
+            DisplayOrder = dto.DisplayOrder, DurationMinutes = dto.DurationMinutes,
+            Price = dto.Price, IsActive = dto.IsActive, IsPublic = dto.IsPublic,
+            RequiresPayment = dto.RequiresPayment, IsContinuityFlow = dto.IsContinuityFlow,
+            ParentTestCode = dto.ParentTestCode, Instructions = dto.Instructions,
+            IncludesCounsellorSession = dto.IncludesCounsellorSession
+        };
+        _context.Tests.Add(test);
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<TestDto>.Ok(MapToDto(test)));
+    }
+
+    [HttpPut("{id:long}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateTest(long id, [FromBody] CreateTestDto dto)
+    {
+        var test = await _context.Tests.FindAsync(id);
+        if (test == null) return NotFound();
+        test.Code = dto.Code; test.Title = dto.Title; test.Slug = dto.Code.Replace("_", "-");
+        test.Category = dto.Category; test.Description = dto.Description; test.Icon = dto.Icon;
+        test.DisplayOrder = dto.DisplayOrder; test.DurationMinutes = dto.DurationMinutes;
+        test.Price = dto.Price; test.IsActive = dto.IsActive; test.IsPublic = dto.IsPublic;
+        test.RequiresPayment = dto.RequiresPayment; test.IsContinuityFlow = dto.IsContinuityFlow;
+        test.ParentTestCode = dto.ParentTestCode; test.Instructions = dto.Instructions;
+        test.IncludesCounsellorSession = dto.IncludesCounsellorSession;
+        if (Enum.TryParse<TestType>(dto.TestType, true, out var tt2)) test.TestType = tt2;
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<TestDto>.Ok(MapToDto(test)));
+    }
+
+    [HttpDelete("{id:long}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteTest(long id)
+    {
+        var test = await _context.Tests.FindAsync(id);
+        if (test == null) return NotFound();
+        _context.Tests.Remove(test);
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }, "Deleted."));
+    }
+
     private static TestDto MapToDto(Test t) => new()
     {
-        Id = t.Id,
-        Code = t.Code,
-        Title = t.Title,
-        Slug = t.Slug,
-        TestType = t.TestType.ToString(),
-        Category = t.Category,
-        Description = t.Description,
-        Icon = t.Icon,
-        DisplayOrder = t.DisplayOrder,
-        DurationMinutes = t.DurationMinutes,
-        TotalQuestions = t.TotalQuestions,
-        Price = t.Price,
-        IsActive = t.IsActive,
+        Id = t.Id, Code = t.Code, Title = t.Title, Slug = t.Slug,
+        TestType = t.TestType.ToString(), Category = t.Category,
+        Description = t.Description, Icon = t.Icon, DisplayOrder = t.DisplayOrder,
+        DurationMinutes = t.DurationMinutes, TotalQuestions = t.TotalQuestions,
+        Price = t.Price, IsActive = t.IsActive,
         IncludesCounsellorSession = t.IncludesCounsellorSession,
         Instructions = t.Instructions,
+        IsPublic = t.IsPublic, RequiresPayment = t.RequiresPayment,
+        IsContinuityFlow = t.IsContinuityFlow, ParentTestCode = t.ParentTestCode,
         Sections = t.Sections?.OrderBy(s => s.SectionOrder).Select(s => new TestSectionDto
         {
             Id = s.Id,
@@ -417,4 +465,24 @@ public class TestsController : ControllerBase
         EducationCostRange = s.Career.EducationCostRange,
         AdmissionInfo = s.Career.AdmissionInfo
     };
+}
+
+public class CreateTestDto
+{
+    public string Code { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string? TestType { get; set; }
+    public string? Category { get; set; }
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public int DisplayOrder { get; set; }
+    public int DurationMinutes { get; set; }
+    public decimal Price { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsPublic { get; set; }
+    public bool RequiresPayment { get; set; }
+    public bool IsContinuityFlow { get; set; }
+    public string? ParentTestCode { get; set; }
+    public string? Instructions { get; set; }
+    public bool IncludesCounsellorSession { get; set; }
 }

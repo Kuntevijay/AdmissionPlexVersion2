@@ -17,6 +17,10 @@ public class TestDto
     public bool IsActive { get; set; }
     public bool IncludesCounsellorSession { get; set; }
     public string? Instructions { get; set; }
+    public bool IsPublic { get; set; }
+    public bool RequiresPayment { get; set; }
+    public bool IsContinuityFlow { get; set; }
+    public string? ParentTestCode { get; set; }
     public List<TestSectionDto> Sections { get; set; } = new();
 }
 

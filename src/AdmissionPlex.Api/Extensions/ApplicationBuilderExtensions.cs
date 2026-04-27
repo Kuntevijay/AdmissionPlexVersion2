@@ -25,6 +25,18 @@ public static class ApplicationBuilderExtensions
             await context.Database.MigrateAsync();
             logger.LogInformation("Database migrations applied.");
 
+            // Ensure new columns exist (idempotent)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(@"
+                    ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""IsPublic"" boolean NOT NULL DEFAULT false;
+                    ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""RequiresPayment"" boolean NOT NULL DEFAULT false;
+                    ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""IsContinuityFlow"" boolean NOT NULL DEFAULT false;
+                    ALTER TABLE tests ADD COLUMN IF NOT EXISTS ""ParentTestCode"" text;
+                ");
+            }
+            catch { /* columns may already exist */ }
+
             await DbSeeder.SeedAsync(context);
             await DbSeeder.SeedRolesAndAdminAsync(services);
             logger.LogInformation("Database seeded successfully.");

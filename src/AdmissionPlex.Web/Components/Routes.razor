@@ -5,4 +5,12 @@
         <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.PublicLayout)">
+            <div style="text-align:center; padding:120px 20px;">
+                <h1 style="font-size:48px; margin-bottom:16px;">404</h1>
+                <p>Page not found. <a href="/">Go home</a></p>
+            </div>
+        </LayoutView>
+    </NotFound>
 </Router>

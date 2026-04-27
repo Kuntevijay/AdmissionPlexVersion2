@@ -20,6 +20,12 @@ public class Test : AuditableEntity
     public bool IncludesCounsellorSession { get; set; }
     public string? Instructions { get; set; }
 
+    // ── Access & flow configuration ──
+    public bool IsPublic { get; set; }
+    public bool RequiresPayment { get; set; }
+    public bool IsContinuityFlow { get; set; }
+    public string? ParentTestCode { get; set; }
+
     // Navigation
     public ICollection<TestSection> Sections { get; set; } = new List<TestSection>();
 }
